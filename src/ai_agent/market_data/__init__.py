@@ -21,6 +21,17 @@ from .aktools import (
     AkToolsServiceVersion,
     AkToolsTransportError,
 )
+from .baostock import (
+    BAOSTOCK_DAILY_IP_LIMIT,
+    DEFAULT_BAOSTOCK_LIMITS,
+    BaoStockApiError,
+    BaoStockCandle,
+    BaoStockClient,
+    BaoStockDependencyError,
+    BaoStockError,
+    BaoStockRateLimitError,
+    BaoStockSessionError,
+)
 
 __all__ = [
     "FREE_PLAN_LIMITS",
@@ -42,4 +53,13 @@ __all__ = [
     "AkToolsRateLimitError",
     "AkToolsServiceVersion",
     "AkToolsTransportError",
+    "BAOSTOCK_DAILY_IP_LIMIT",
+    "DEFAULT_BAOSTOCK_LIMITS",
+    "BaoStockApiError",
+    "BaoStockCandle",
+    "BaoStockClient",
+    "BaoStockDependencyError",
+    "BaoStockError",
+    "BaoStockRateLimitError",
+    "BaoStockSessionError",
 ]

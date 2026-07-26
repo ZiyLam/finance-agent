@@ -272,3 +272,79 @@ def create_aktools_market_data_tool(client: "AkToolsClient") -> FunctionTool:
         ),
         handler=market_data,
     )
+
+
+def create_baostock_market_data_tool(client: "BaoStockClient") -> FunctionTool:
+    """Expose bounded historical A-share K-line reads from BaoStock."""
+
+    from .market_data.baostock import BaoStockError
+
+    def market_data(arguments: Mapping[str, Any]) -> str:
+        code = arguments.get("code")
+        start_date = arguments.get("start_date")
+        end_date = arguments.get("end_date")
+        if not all(isinstance(value, str) for value in (code, start_date, end_date)):
+            raise ValueError("'code', 'start_date', and 'end_date' must be strings")
+        frequency = arguments.get("frequency", "d")
+        adjustflag = arguments.get("adjustflag", "3")
+        if not isinstance(frequency, str) or not isinstance(adjustflag, str):
+            raise ValueError("'frequency' and 'adjustflag' must be strings")
+        limit = arguments.get("limit", 120)
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 120:
+            raise ValueError("'limit' must be an integer between 1 and 120")
+        try:
+            candles = client.historical_candles(
+                code,
+                start_date=start_date,
+                end_date=end_date,
+                frequency=frequency,
+                adjustflag=adjustflag,
+            )
+        except BaoStockError as error:
+            return f"ERROR: {error}"
+        return json.dumps(
+            {
+                "source": "BaoStock",
+                "code": code,
+                "frequency": frequency,
+                "adjustflag": adjustflag,
+                "returned_rows": len(candles),
+                "shown_rows": min(len(candles), limit),
+                "candles": [
+                    {
+                        "date": candle.date,
+                        "code": candle.code,
+                        "open": str(candle.open_price),
+                        "close": str(candle.close_price),
+                        "high": str(candle.high_price),
+                        "low": str(candle.low_price),
+                        "previous_close": str(candle.previous_close)
+                        if candle.previous_close is not None
+                        else None,
+                        "volume": str(candle.volume) if candle.volume is not None else None,
+                        "amount": str(candle.amount) if candle.amount is not None else None,
+                        "turnover_rate_percent": str(candle.turnover_rate_percent)
+                        if candle.turnover_rate_percent is not None
+                        else None,
+                        "change_percent": str(candle.change_percent)
+                        if candle.change_percent is not None
+                        else None,
+                        "trade_status": candle.trade_status,
+                        "is_st": candle.is_st,
+                    }
+                    for candle in candles[-limit:]
+                ],
+            },
+            ensure_ascii=False,
+        )
+
+    return FunctionTool(
+        name="baostock_market_data",
+        description=(
+            "Reads BaoStock historical A-share K lines. Inputs: code such as 'sh.600000', "
+            "start_date/end_date (YYYY-MM-DD), frequency ('d', 'w', 'm'), adjustflag "
+            "('1' post-adjusted, '2' pre-adjusted, '3' unadjusted), and optional limit (1-120). "
+            "Uses an anonymous read-only BaoStock session and never trades."
+        ),
+        handler=market_data,
+    )

@@ -102,6 +102,16 @@ ai-agent
 
 Agent 启动不会探测网络，而是始终注册只读的 `aktools_market_data` 工具；所以 AkTools 尚未运行并不会影响 AllTick 或必盈。`ai-agent source check aktools` 只读取并显示运行中服务的当前 AkTools 版本；是否升级由使用者决定。首次调用失败时，工具会提示启动本地服务。当前封装了文档的 `stock_zh_a_hist`：传入 6 位沪深 A 股代码、`YYYYMMDD` 日期区间、`daily`/`weekly`/`monthly` 周期，以及 `qfq`（前复权）或 `hfq`（后复权）。为了不挤占模型上下文，工具最多返回最近 120 根 K 线；完整区间行数会一并标明。
 
+## BaoStock 数据
+
+项目依赖官方 `baostock` Python 包，并以匿名会话按其文档执行 `login()`、`query_history_k_data_plus()` 和 `logout()`；不需要 API Token，也不会保存账号密码。`baostock_market_data` 当前提供 A 股日/周/月历史 K 线：代码使用 BaoStock 格式（如 `sh.600000`、`sz.000001`），日期为 `YYYY-MM-DD`，频率使用 `d`、`w` 或 `m`，复权参数使用官方 `adjustflag`：`1` 后复权、`2` 前复权、`3` 不复权。
+
+BaoStock 公布的限制为同一 IP 每日不超过 50,000 次访问；本项目默认采用每进程 5,000 次/日和 0.1 秒最小间隔的本地保护值，以便为同 IP 的其他研究或手工查询预留余量。可用下列命令确认其无 Token 配置状态：
+
+```powershell
+ai-agent source status baostock
+```
+
 可选环境变量：
 
 ```text

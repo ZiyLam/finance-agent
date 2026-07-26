@@ -18,6 +18,7 @@ from .tools import (
     ToolRegistry,
     create_aktools_market_data_tool,
     create_alltick_market_data_tool,
+    create_baostock_market_data_tool,
     create_biying_market_data_tool,
     create_echo_tool,
 )
@@ -30,16 +31,18 @@ _TOKEN_SOURCES = {
 
 _LOCAL_SOURCES = {
     "aktools": "AKTOOLS_BASE_URL",
+    "baostock": None,
 }
 
 
 def _print_source_help(output: Callable[[str], None]) -> None:
-    output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|biying|aktools]")
+    output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|biying|aktools|baostock]")
     output("  status                 Show source configuration; never prints tokens or URLs.")
     output("  check aktools          Show the current version reported by the running AkTools service.")
     output("  set-token <source>     Prompt securely for an AllTick or 必盈 API credential.")
     output("  delete-token <source>  Remove a saved AllTick or 必盈 credential after confirmation.")
     output("  aktools                Needs no token; configure its local URL with AKTOOLS_BASE_URL.")
+    output("  baostock               Needs no token; local requests stay below its 50,000/IP/day provider limit.")
 
 
 def run_source_command(
@@ -66,8 +69,14 @@ def run_source_command(
                 output(f"Unknown source: {source}")
                 return 2
             if source in _LOCAL_SOURCES:
-                origin = "environment variable" if getenv(_LOCAL_SOURCES[source]) else "default local address"
-                output(f"{source}: no token required; base URL from {origin} (checked on demand)")
+                configuration_variable = _LOCAL_SOURCES[source]
+                if configuration_variable:
+                    origin = "environment variable" if getenv(configuration_variable) else "default local address"
+                    output(f"{source}: no token required; base URL from {origin} (checked on demand)")
+                else:
+                    output(
+                        "baostock: no token required; anonymous sessions use a local 5,000 requests/day guard"
+                    )
                 continue
             try:
                 token = resolve_token(source, environment_variable, store)
@@ -175,10 +184,12 @@ def main(argv: Sequence[str] | None = None) -> None:
 
         registered_tools.append(create_biying_market_data_tool(BiyingClient(biying_licence)))
     from .market_data.aktools import AkToolsClient
+    from .market_data.baostock import BaoStockClient
 
     # Construction does not call the network. The tool reports a clear error if
     # the optional locally managed service is not running when it is invoked.
     registered_tools.append(create_aktools_market_data_tool(AkToolsClient.from_environment()))
+    registered_tools.append(create_baostock_market_data_tool(BaoStockClient()))
     agent = Agent(
         model=EchoModelClient(),
         memory=ConversationMemory(system_prompt, settings.memory_window),
