@@ -37,6 +37,7 @@ class DataSourceCatalogTests(unittest.TestCase):
         self.assertTrue(any(line.startswith("alltick:") for line in output))
         self.assertTrue(any(line.startswith("yfinance:") for line in output))
         self.assertTrue(all("credential slot" in line for line in output))
+        self.assertTrue(all("tags [" in line for line in output))
 
 
 if __name__ == "__main__":

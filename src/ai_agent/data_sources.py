@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .analysis_tags import DataSourceTag
+
 
 @dataclass(frozen=True, slots=True)
 class DataSourceDefinition:
@@ -22,6 +24,7 @@ class DataSourceDefinition:
     token_required_by_adapter: bool
     status_description: str = ""
     base_url_environment_variable: str | None = None
+    tags: frozenset[DataSourceTag] = frozenset()
 
     def __post_init__(self) -> None:
         if not self.name.replace("-", "").replace("_", "").isalnum():
@@ -32,16 +35,70 @@ class DataSourceDefinition:
             raise ValueError("Data sources need a token environment-variable name")
         if not self.token_required_by_adapter and not self.status_description.strip():
             raise ValueError("Token-free sources need a status_description")
+        if not all(isinstance(tag, DataSourceTag) for tag in self.tags):
+            raise ValueError("Data-source tags must be DataSourceTag values")
 
 
 # Future source integration entry point: add exactly one definition here first.
 # Its token-maintenance CLI commands become available immediately.  Set
 # token_required_by_adapter=True only after its runtime client consumes it.
 DATA_SOURCE_CATALOG = (
-    DataSourceDefinition("alltick", "AllTick", "ALLTICK_API_TOKEN", True),
-    DataSourceDefinition("alphavantage", "Alpha Vantage", "ALPHAVANTAGE_API_KEY", True),
-    DataSourceDefinition("biying", "必盈 API", "BIYING_API_LICENCE", True),
-    DataSourceDefinition("eodhd", "EOD Historical Data (EODHD)", "EODHD_API_TOKEN", True),
+    DataSourceDefinition(
+        "alltick",
+        "AllTick",
+        "ALLTICK_API_TOKEN",
+        True,
+        tags=frozenset(
+            {
+                DataSourceTag.A_SHARE,
+                DataSourceTag.GLOBAL_MARKETS,
+                DataSourceTag.MULTI_ASSET,
+                DataSourceTag.REALTIME_QUOTE,
+                DataSourceTag.HISTORICAL_OHLCV,
+            }
+        ),
+    ),
+    DataSourceDefinition(
+        "alphavantage",
+        "Alpha Vantage",
+        "ALPHAVANTAGE_API_KEY",
+        True,
+        tags=frozenset(
+            {
+                DataSourceTag.GLOBAL_MARKETS,
+                DataSourceTag.SYMBOL_SEARCH,
+                DataSourceTag.END_OF_DAY_QUOTE,
+                DataSourceTag.HISTORICAL_OHLCV,
+            }
+        ),
+    ),
+    DataSourceDefinition(
+        "biying",
+        "必盈 API",
+        "BIYING_API_LICENCE",
+        True,
+        tags=frozenset(
+            {
+                DataSourceTag.A_SHARE,
+                DataSourceTag.SYMBOL_SEARCH,
+                DataSourceTag.REALTIME_QUOTE,
+                DataSourceTag.VALUATION_METRICS,
+            }
+        ),
+    ),
+    DataSourceDefinition(
+        "eodhd",
+        "EOD Historical Data (EODHD)",
+        "EODHD_API_TOKEN",
+        True,
+        tags=frozenset(
+            {
+                DataSourceTag.GLOBAL_MARKETS,
+                DataSourceTag.SYMBOL_SEARCH,
+                DataSourceTag.HISTORICAL_OHLCV,
+            }
+        ),
+    ),
     DataSourceDefinition("qianfan", "百度智能云千帆 LLM", "QIANFAN_API_KEY", True),
     DataSourceDefinition(
         "aktools",
@@ -50,6 +107,13 @@ DATA_SOURCE_CATALOG = (
         False,
         "local AkTools service (checked on demand)",
         "AKTOOLS_BASE_URL",
+        frozenset(
+            {
+                DataSourceTag.A_SHARE,
+                DataSourceTag.HISTORICAL_OHLCV,
+                DataSourceTag.LOCAL_SERVICE,
+            }
+        ),
     ),
     DataSourceDefinition(
         "baostock",
@@ -57,6 +121,7 @@ DATA_SOURCE_CATALOG = (
         "BAOSTOCK_API_TOKEN",
         False,
         "anonymous sessions use a local 5,000 requests/day guard",
+        tags=frozenset({DataSourceTag.A_SHARE, DataSourceTag.HISTORICAL_OHLCV}),
     ),
     DataSourceDefinition(
         "yfinance",
@@ -64,6 +129,14 @@ DATA_SOURCE_CATALOG = (
         "YFINANCE_API_TOKEN",
         False,
         "local 1,000 requests/day guard for personal research",
+        tags=frozenset(
+            {
+                DataSourceTag.GLOBAL_MARKETS,
+                DataSourceTag.MULTI_ASSET,
+                DataSourceTag.END_OF_DAY_QUOTE,
+                DataSourceTag.HISTORICAL_OHLCV,
+            }
+        ),
     ),
 )
 

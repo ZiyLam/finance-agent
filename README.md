@@ -75,6 +75,27 @@ $env:AGENT_MODEL = 'ernie-4.5-turbo-32k'
 2. 将适配器注入 `Agent`，或在后续的应用组合层中按 `AGENT_PROVIDER` 选择适配器。
 3. 通过实现 `Tool` 协议添加业务工具；工具应在自己的边界内完成鉴权、输入校验和审计。
 
+## 场景标签与确定性研究路由
+
+每个已接入数据源都按其当前适配器实际暴露的能力标记，例如 `a_share`、`global_markets`、`realtime_quote`、`end_of_day_quote`、`historical_ohlcv`、`symbol_search` 与 `valuation_metrics`。模型也会标记 `financial_research`、`structured_response`、`agent_tool_protocol`、`chinese` 等能力。标签是路由条件，不是对数据时效、授权范围或准确性的额外承诺。
+
+`SecurityAnalysisRequest` 是单标的研究的标准输入契约：`symbol`、`market`、`scenario`，以及历史场景必须提供的 `start_date`/`end_date`。它会产生 `security-analysis-plan/v1`：固定主数据源、回退顺序、兼容模型与必填证据/风险字段。该规划过程不读取凭证、不访问网络，也不会执行交易。
+
+查看全部标签和可用场景：
+
+```powershell
+finance-agent route catalog
+finance-agent route scenarios
+```
+
+生成 A 股历史行情分析计划：
+
+```powershell
+finance-agent route plan a_share_price_history a_share 600000 codex 2026-01-01 2026-01-31
+```
+
+首版场景包括证券检索、A 股实时行情、全球市场快照、A 股/全球历史行情、A 股估值快照、跨源历史验证和研究简报。路由优先级由代码维护，例如 A 股历史优先 AkTools、再回退 BaoStock 与 AllTick；全球历史优先 EODHD、再回退 yfinance、Alpha Vantage 与 AllTick。下一阶段的数据执行器将按该计划调用来源并保留原始来源、采集时间、源时间戳、时效标签和风险证据。
+
 ## AllTick 行情数据
 
 内置 `ai_agent.market_data.AllTickClient`，按 AllTick HTTP 文档封装了：

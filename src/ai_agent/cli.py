@@ -3,18 +3,25 @@
 from __future__ import annotations
 
 from getpass import getpass
+import json
 from os import getenv
 from pathlib import Path
 import sys
 from typing import Any, Callable, Sequence
 
 from .agent import Agent
+from .analysis_tags import AnalysisScenario, Market
 from .config import AgentSettings
 from .data_sources import DATA_SOURCE_CATALOG, data_source_names, get_data_source
 from .memory import ConversationMemory
 from .providers.codex_cli import CodexCliError, CodexCliModelClient
 from .providers.echo import EchoModelClient
 from .providers.qianfan import QianfanError, QianfanModelClient
+from .research_planning import (
+    SecurityAnalysisRequest,
+    build_security_analysis_plan,
+    catalog_snapshot,
+)
 from .secrets import SecretStoreError, TokenStore, resolve_token
 from .skills import compose_system_prompt, load_skills
 from .tools import (
@@ -40,6 +47,14 @@ def _print_source_help(output: Callable[[str], None]) -> None:
     output("  delete-token <source>  Remove a saved data-source credential after confirmation.")
 
 
+def _print_route_help(output: Callable[[str], None]) -> None:
+    output("Usage: finance-agent route {catalog|scenarios|plan}")
+    output("  catalog                                List data-source and model capability tags.")
+    output("  scenarios                              List supported deterministic research scenarios.")
+    output("  plan <scenario> <market> <symbol> [provider] [start_date end_date]")
+    output("                                         Build a read-only security-analysis plan as JSON.")
+
+
 def run_source_command(
     arguments: Sequence[str],
     *,
@@ -62,9 +77,10 @@ def run_source_command(
             return 2
         for definition in DATA_SOURCE_CATALOG:
             usage = "required by current adapter" if definition.token_required_by_adapter else "maintenance only"
+            tags = ",".join(sorted(tag.value for tag in definition.tags)) or "none"
             output(
                 f"{definition.name}: {definition.display_name}; "
-                f"credential slot {usage} ({definition.token_environment_variable})"
+                f"credential slot {usage} ({definition.token_environment_variable}); tags [{tags}]"
             )
         return 0
 
@@ -151,11 +167,62 @@ def run_source_command(
     return 2
 
 
+def run_route_command(
+    arguments: Sequence[str],
+    *,
+    output: Callable[[str], None] = print,
+) -> int:
+    """Inspect deterministic research routes without reading credentials or using the network."""
+
+    if not arguments or arguments[0] in {"help", "--help", "-h"}:
+        _print_route_help(output)
+        return 0
+    command, *values = arguments
+    if command == "catalog" and not values:
+        output(json.dumps(catalog_snapshot(), ensure_ascii=False, indent=2))
+        return 0
+    if command == "scenarios" and not values:
+        output(json.dumps({"scenarios": catalog_snapshot()["scenarios"]}, ensure_ascii=False, indent=2))
+        return 0
+    if command != "plan" or len(values) not in {3, 4, 6}:
+        _print_route_help(output)
+        return 2
+    scenario_text, market_text, symbol, *options = values
+    provider = "codex"
+    dates: list[str] = []
+    if len(options) == 1:
+        provider = options[0]
+    elif len(options) == 3:
+        provider, *dates = options
+    try:
+        request = SecurityAnalysisRequest(
+            symbol=symbol,
+            market=Market(market_text),
+            scenario=AnalysisScenario(scenario_text),
+            start_date=dates[0] if dates else None,
+            end_date=dates[1] if dates else None,
+        )
+        plan = build_security_analysis_plan(request, provider=provider)
+    except ValueError as error:
+        output(f"Could not build route: {error}")
+        return 2
+    except RuntimeError as error:
+        output(f"Could not build route: {error}")
+        return 1
+    output(json.dumps(plan.to_dict(), ensure_ascii=False, indent=2))
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     arguments = list(sys.argv[1:] if argv is None else argv)
     if arguments:
         if arguments[0] == "source":
             exit_code = run_source_command(arguments[1:])
+            if exit_code:
+                raise SystemExit(exit_code)
+            return
+        if arguments[0] == "route":
+            exit_code = run_route_command(arguments[1:])
             if exit_code:
                 raise SystemExit(exit_code)
             return
