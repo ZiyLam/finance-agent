@@ -12,7 +12,10 @@ src/ai_agent/
   messages.py       # 领域消息与模型响应类型
   tools.py          # 工具协议、注册表与内置示例工具
   providers/        # 模型供应商适配层
+  skills.py         # 项目本地 Skill 的加载与系统提示词组装
   cli.py            # 本地交互入口
+skills/
+  financial-investment-analyst/  # 金融分析、风险提醒与研究性观点 Skill
 tests/              # 标准库 unittest 测试
 ```
 
@@ -30,6 +33,8 @@ ai-agent
 ```
 
 默认使用 `EchoModelClient`，它仅用于验证框架线路，不会调用外部模型或网络服务。
+
+启动时，CLI 会自动加载项目根目录 `skills/*/SKILL.md` 中经审阅的 Skill，并把它们加入系统提示词。当前已内置金融分析 Skill；它要求模型标注数据时点和证据、输出风险情景，且不执行交易或提供保证收益的个性化荐股。
 
 ## 接入真实模型
 

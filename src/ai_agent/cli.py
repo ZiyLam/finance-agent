@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from .agent import Agent
 from .config import AgentSettings
 from .memory import ConversationMemory
 from .providers.echo import EchoModelClient
+from .skills import compose_system_prompt, load_skills
 from .tools import ToolRegistry, create_echo_tool
 
 
@@ -17,12 +20,15 @@ def main() -> None:
             "Add an adapter under ai_agent.providers first."
         )
 
+    project_root = Path(__file__).resolve().parents[2]
+    skills = load_skills(project_root / "skills")
+    system_prompt = compose_system_prompt(settings.system_prompt, skills)
     agent = Agent(
         model=EchoModelClient(),
-        memory=ConversationMemory(settings.system_prompt, settings.memory_window),
+        memory=ConversationMemory(system_prompt, settings.memory_window),
         tools=ToolRegistry((create_echo_tool(),)),
     )
-    print("AI Agent framework ready. Type 'exit' to quit.")
+    print(f"AI Agent framework ready ({len(skills)} skills loaded). Type 'exit' to quit.")
     while True:
         try:
             user_input = input("> ").strip()
