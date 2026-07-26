@@ -69,6 +69,8 @@ class XingchenModelClientTests(unittest.TestCase):
         self.assertEqual(request_body["model"], "service-model-id")
         self.assertEqual(request_body["stream"], False)
         self.assertIn('"name": "echo"', request_body["messages"][0]["content"])
+        self.assertIn("text must be a string containing your actual user-facing answer", request_body["messages"][0]["content"])
+        self.assertNotIn('"text":"user-facing answer"', request_body["messages"][0]["content"])
 
     def test_accepts_tool_envelope_and_legacy_api_base(self) -> None:
         transport = CapturingTransport(

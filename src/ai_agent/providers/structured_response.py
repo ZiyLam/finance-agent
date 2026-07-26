@@ -30,9 +30,10 @@ def build_agent_prompt(messages: Sequence[ChatMessage], tools: Sequence[Tool]) -
         "JSON-object argument map encoded as the arguments_json string and wait for its result "
         "before drawing factual conclusions. Never claim that a quote is real-time unless the "
         "returned data explicitly supports it. Do not execute trades or present guaranteed returns. "
-        "Return JSON only, with exactly this envelope: "
-        '{"text":"user-facing answer","tool_calls":[{"id":"unique id","name":"tool name",'
-        '"arguments_json":"{...}"}]}. Use an empty tool_calls array when no tool is needed.\n\n'
+        "Return only one JSON object with exactly two keys: text and tool_calls. "
+        "text must be a string containing your actual user-facing answer. tool_calls must be an array. "
+        "Each tool call must contain id, name, and arguments_json, where arguments_json is a string "
+        "that encodes a JSON-object argument map. Use an empty tool_calls array when no tool is needed.\n\n"
         "Available local Agent tools:\n"
         f"{json.dumps(available_tools, ensure_ascii=False)}\n\n"
         "Conversation transcript:\n"
