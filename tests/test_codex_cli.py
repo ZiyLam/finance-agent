@@ -123,6 +123,14 @@ class AgentSettingsTests(unittest.TestCase):
             ("qianfan", "ernie-4.5-turbo-32k", 60),
         )
 
+    def test_xingchen_keeps_model_id_operator_configured(self) -> None:
+        with patch.dict("os.environ", {"AGENT_PROVIDER": "xingchen"}, clear=True):
+            settings = AgentSettings.from_environment()
+        self.assertEqual(
+            (settings.provider, settings.model, settings.xingchen_timeout_seconds),
+            ("xingchen", "", 60),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

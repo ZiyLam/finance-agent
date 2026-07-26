@@ -67,6 +67,26 @@ $env:AGENT_MODEL = 'ernie-4.5-turbo-32k'
 
 `AGENT_QIANFAN_TIMEOUT_SECONDS` 可调整单轮请求超时，默认 60 秒。若当前千帆账号未获默认模型授权，请设置 `AGENT_MODEL` 为账号已获授权的模型标识。千帆适配器仅能请求本项目已注册的只读本地数据工具；它不会执行交易、下单或输出收益保证。
 
+## 可切换模型：讯飞星辰 MaaS
+
+已按讯飞星辰 [HTTP 推理服务文档](https://www.xfyun.cn/doc/spark/%E6%8E%A8%E7%90%86%E6%9C%8D%E5%8A%A1-http.html#_1-%E6%8E%A5%E5%8F%A3%E8%AF%B4%E6%98%8E) 接入其 OpenAI 兼容的 `/chat/completions` 接口。默认 API Base 为 2026-01-10 后发布服务使用的 `https://maas-api.cn-huabei-1.xf-yun.com/v2`。模型 ID 由星辰“模型服务列表”按已发布服务分配，必须由操作者显式设置，项目不会猜测或写死未授权模型。
+
+```powershell
+finance-agent source set-token xingchen
+$env:AGENT_PROVIDER = 'xingchen'
+# 填入星辰「模型服务列表」中当前服务对应的 modelId
+$env:AGENT_MODEL = '<YOUR_XINGCHEN_MODEL_ID>'
+.\resources\finance-agent.ps1
+```
+
+如使用 2026-01-10 前创建的存量服务，按官方控制台的调用信息覆盖 API Base：
+
+```powershell
+$env:XINGCHEN_API_BASE = 'http://maas-api.cn-huabei-1.xf-yun.com/v1'
+```
+
+可用 `AGENT_XINGCHEN_TIMEOUT_SECONDS` 调整单轮超时，默认 60 秒。星辰文档的原生 Function Calling 目前仅支持部分模型；本项目继续使用统一的受限 JSON 工具协议，因此在未确认模型支持时不会向服务声明原生工具调用。
+
 启动时，CLI 会自动加载项目根目录 `skills/*/SKILL.md` 中经审阅的 Skill，并把它们加入系统提示词。当前已内置金融分析 Skill；它要求模型标注数据时点和证据、输出风险情景，且不执行交易或提供保证收益的个性化荐股。
 
 ## 接入真实模型

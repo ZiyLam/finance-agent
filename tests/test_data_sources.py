@@ -21,6 +21,7 @@ class DataSourceCatalogTests(unittest.TestCase):
                 "biying",
                 "eodhd",
                 "qianfan",
+                "xingchen",
                 "aktools",
                 "baostock",
                 "yfinance",
