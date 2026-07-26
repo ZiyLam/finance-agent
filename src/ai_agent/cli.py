@@ -21,6 +21,7 @@ from .tools import (
     create_alphavantage_market_data_tool,
     create_baostock_market_data_tool,
     create_biying_market_data_tool,
+    create_eodhd_market_data_tool,
     create_echo_tool,
     create_yfinance_market_data_tool,
 )
@@ -30,6 +31,7 @@ _TOKEN_SOURCES = {
     "alltick": "ALLTICK_API_TOKEN",
     "alphavantage": "ALPHAVANTAGE_API_KEY",
     "biying": "BIYING_API_LICENCE",
+    "eodhd": "EODHD_API_TOKEN",
 }
 
 _LOCAL_SOURCES = {
@@ -40,12 +42,13 @@ _LOCAL_SOURCES = {
 
 
 def _print_source_help(output: Callable[[str], None]) -> None:
-    output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|alphavantage|biying|aktools|baostock|yfinance]")
+    output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|alphavantage|biying|eodhd|aktools|baostock|yfinance]")
     output("  status                 Show source configuration; never prints tokens or URLs.")
     output("  check aktools          Show the current version reported by the running AkTools service.")
     output("  set-token <source>     Prompt securely for an AllTick, Alpha Vantage, or 必盈 API credential.")
     output("  delete-token <source>  Remove a saved data-source credential after confirmation.")
     output("  alphavantage           Free keys are locally guarded at 25 requests/day and 15-second spacing.")
+    output("  eodhd                  Free keys are locally guarded at 20 requests/day and 3-second spacing.")
     output("  aktools                Needs no token; configure its local URL with AKTOOLS_BASE_URL.")
     output("  baostock               Needs no token; local requests stay below its 50,000/IP/day provider limit.")
     output("  yfinance               Needs no token; Yahoo Finance data is limited to personal research use.")
@@ -192,6 +195,17 @@ def main(argv: Sequence[str] | None = None) -> None:
         from .market_data.alphavantage import AlphaVantageClient
 
         registered_tools.append(create_alphavantage_market_data_tool(AlphaVantageClient(alphavantage_key)))
+    try:
+        eodhd_token = resolve_token("eodhd", "EODHD_API_TOKEN")
+    except SecretStoreError as error:
+        raise SystemExit(
+            "Could not read the saved EODHD API token. "
+            "Run 'ai-agent source delete-token eodhd' then set it again."
+        ) from error
+    if eodhd_token:
+        from .market_data.eodhd import EODHDClient
+
+        registered_tools.append(create_eodhd_market_data_tool(EODHDClient(eodhd_token)))
     try:
         biying_licence = resolve_token("biying", "BIYING_API_LICENCE")
     except SecretStoreError as error:

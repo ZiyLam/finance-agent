@@ -23,6 +23,18 @@ from .alphavantage import (
     AlphaVantageSymbol,
     AlphaVantageTransportError,
 )
+from .eodhd import (
+    EODHD_API_BASE,
+    FREE_PLAN_LIMITS as EODHD_FREE_PLAN_LIMITS,
+    EODHDApiError,
+    EODHDCandle,
+    EODHDClient,
+    EODHDError,
+    EODHDLimits,
+    EODHDRateLimitError,
+    EODHDSearchMatch,
+    EODHDTransportError,
+)
 from .biying import BiyingClient, BiyingQuote, BiyingStock
 from .aktools import (
     DEFAULT_AKTOOLS_BASE_URL,
@@ -76,6 +88,16 @@ __all__ = [
     "AlphaVantageRateLimitError",
     "AlphaVantageSymbol",
     "AlphaVantageTransportError",
+    "EODHD_API_BASE",
+    "EODHD_FREE_PLAN_LIMITS",
+    "EODHDApiError",
+    "EODHDCandle",
+    "EODHDClient",
+    "EODHDError",
+    "EODHDLimits",
+    "EODHDRateLimitError",
+    "EODHDSearchMatch",
+    "EODHDTransportError",
     "BiyingClient",
     "BiyingQuote",
     "BiyingStock",

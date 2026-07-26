@@ -57,6 +57,7 @@ ai-agent
 ```powershell
 ai-agent source set-token alltick
 ai-agent source set-token alphavantage
+ai-agent source set-token eodhd
 ai-agent source set-token biying
 ai-agent source status
 ai-agent source delete-token biying
@@ -125,6 +126,19 @@ ai-agent source status alphavantage
 ```
 
 根据 Alpha Vantage 官方文档，免费服务上限为每天 25 次请求。本项目额外采用每进程每天 25 次、最小 15 秒间隔的本地保护；不要绕过该限制。免费 `GLOBAL_QUOTE` 默认是每日收盘后更新的数据，不能表述为实时或 15 分钟延迟美国行情；后两者需要提供商授权。所有 Alpha Vantage 数据只能用于研究核验，不构成交易指令或收益承诺。
+
+## EOD Historical Data（EODHD）数据
+
+`eodhd_market_data` 通过 EODHD 官方 REST API 提供全球标的的日/周/月历史 OHLCV（`historical_candles`）和活跃标的检索（`search`）。历史查询须使用 EODHD 的交易所后缀代码，例如 `AAPL.US`、`0700.HK`、`EURUSD.FOREX` 或 `BTC-USD.CC`；输入日期为 `YYYY-MM-DD`，周期为 `d`、`w` 或 `m`。每项查询最多向模型返回最近 120 根，但响应始终标示完整返回行数。
+
+EODHD 免费计划文档列出每天 20 次 API 调用，且历史数据仅限最近一年。本项目按每进程每天 20 次、最小 3 秒间隔设置本地保护；套餐权限或时间范围不足时，工具会返回错误而不会猜测或补齐数据。历史字段可能包含 `adjusted_close`，但必须按响应实际字段理解，不能把数据描述为交易所实时成交；EODHD 也明确说明其数据并非当然实时或准确，不能作为自动交易或个性化投资结论的唯一依据。
+
+使用以下命令加密保存或维护凭证：
+
+```powershell
+ai-agent source set-token eodhd
+ai-agent source status eodhd
+```
 
 ## yfinance / Yahoo Finance 数据
 

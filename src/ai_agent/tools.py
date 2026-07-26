@@ -249,6 +249,99 @@ def create_alphavantage_market_data_tool(client: "AlphaVantageClient") -> Functi
     )
 
 
+def create_eodhd_market_data_tool(client: "EODHDClient") -> FunctionTool:
+    """Expose bounded EODHD historical and ticker-search reads to a model."""
+
+    from .market_data.eodhd import EODHDError
+
+    def market_data(arguments: Mapping[str, Any]) -> str:
+        action = arguments.get("action", "historical_candles")
+        if action == "historical_candles":
+            symbol = arguments.get("symbol")
+            start_date = arguments.get("start_date")
+            end_date = arguments.get("end_date")
+            if not all(isinstance(value, str) for value in (symbol, start_date, end_date)):
+                raise ValueError("'symbol', 'start_date', and 'end_date' must be strings")
+            period = arguments.get("period", "d")
+            if not isinstance(period, str):
+                raise ValueError("'period' must be a string")
+            limit = arguments.get("limit", 120)
+            if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 120:
+                raise ValueError("'limit' must be an integer between 1 and 120")
+            try:
+                candles = client.historical_candles(
+                    symbol, start_date=start_date, end_date=end_date, period=period
+                )
+            except EODHDError as error:
+                return f"ERROR: {error}"
+            return json.dumps(
+                {
+                    "source": "EOD Historical Data (EODHD)",
+                    "symbol": symbol,
+                    "period": period,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "returned_rows": len(candles),
+                    "shown_rows": min(len(candles), limit),
+                    "candles": [
+                        {
+                            "date": candle.date,
+                            "open": str(candle.open_price),
+                            "close": str(candle.close_price),
+                            "high": str(candle.high_price),
+                            "low": str(candle.low_price),
+                            "adjusted_close": str(candle.adjusted_close)
+                            if candle.adjusted_close is not None
+                            else None,
+                            "volume": str(candle.volume) if candle.volume is not None else None,
+                        }
+                        for candle in candles[-limit:]
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        if action == "search":
+            query = arguments.get("query")
+            if not isinstance(query, str):
+                raise ValueError("'query' must be a ticker or company-name search string")
+            limit = arguments.get("limit", 10)
+            if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 20:
+                raise ValueError("'limit' must be an integer between 1 and 20")
+            try:
+                matches = client.search(query, limit)
+            except EODHDError as error:
+                return f"ERROR: {error}"
+            return json.dumps(
+                {
+                    "source": "EOD Historical Data (EODHD)",
+                    "matches": [
+                        {
+                            "symbol": match.symbol,
+                            "code": match.code,
+                            "exchange": match.exchange,
+                            "name": match.name,
+                            "type": match.asset_type,
+                            "country": match.country,
+                            "currency": match.currency,
+                        }
+                        for match in matches
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        raise ValueError("'action' must be 'historical_candles' or 'search'")
+
+    return FunctionTool(
+        name="eodhd_market_data",
+        description=(
+            "Reads EODHD end-of-day historical OHLCV or active-instrument search results. Inputs: "
+            "action ('historical_candles' or 'search'); EODHD symbol such as AAPL.US; date range "
+            "(YYYY-MM-DD); period ('d', 'w', 'm'); or query and optional limit. Never trades."
+        ),
+        handler=market_data,
+    )
+
+
 def create_biying_market_data_tool(client: "BiyingClient") -> FunctionTool:
     """Expose bounded 必盈 A-share reads without exposing the certificate."""
 
