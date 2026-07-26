@@ -52,7 +52,15 @@ ai-agent
 - URL 编码的 `query`、唯一 `trace`、`ret/msg/trace` 错误处理；
 - 免费套餐的本地保护限流：10 秒间隔、每分钟 10 次、每天 1000 次，最新价每次最多 5 个代码。
 
-令牌仅从当前进程环境变量读取，绝不可写入 `.env.example`、源码或 Git：
+令牌维护入口（推荐，输入不会回显）：
+
+```powershell
+ai-agent source set-token alltick
+ai-agent source status
+ai-agent source delete-token alltick
+```
+
+设置命令会用 Windows DPAPI 对令牌加密，并保存到当前 Windows 用户的本地应用数据目录；令牌绝不会写入项目、`.env.example` 或 Git。环境变量仍适用于临时会话和部署，并优先于安全存储：
 
 ```powershell
 $env:ALLTICK_API_TOKEN = '在此设置你自己的令牌'
