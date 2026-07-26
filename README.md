@@ -74,6 +74,14 @@ finance-agent
 
 设置变量后，CLI 会额外注册 `alltick_market_data` 工具。它支持 `latest_quotes` 与 `historical_candles` 两种只读动作，供真实模型适配器调用；默认 Echo 模型不会发起网络请求。
 
+## 后续数据源扩展入口
+
+后续数据源的凭证维护统一由 [data_sources.py](src/ai_agent/data_sources.py) 管理。新增一个 `DataSourceDefinition` 后，`finance-agent source list`、`source status`、`source set-token` 与 `source delete-token` 会自动识别该名称；该条目需定义显示名称、环境变量名，以及当前适配器是否实际使用凭证。随后再独立实现数据客户端、输入校验、限流、工具注册、测试与金融 Skill 的数据口径说明。这样，单纯保存未来凭证不会意外触发网络请求或使 Agent 使用未实现的数据源。
+
+```powershell
+finance-agent source list
+```
+
 ## 必盈 API 数据
 
 内置 `ai_agent.market_data.BiyingClient`，封装了必盈 API 的沪深 A 股股票代码检索和“实时交易（公开数据）”接口。它通过 `biying_market_data` 提供 `find_stocks`（最多 20 条匹配）与 `realtime_quote` 两种只读动作，返回价格、涨跌幅、成交量、动态市盈率、市净率及接口返回的更新时间。

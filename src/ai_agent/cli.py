@@ -10,6 +10,7 @@ from typing import Any, Callable, Sequence
 
 from .agent import Agent
 from .config import AgentSettings
+from .data_sources import DATA_SOURCE_CATALOG, data_source_names, get_data_source
 from .memory import ConversationMemory
 from .providers.echo import EchoModelClient
 from .secrets import SecretStoreError, TokenStore, resolve_token
@@ -27,37 +28,14 @@ from .tools import (
 )
 
 
-_TOKEN_SOURCES = {
-    "alltick": "ALLTICK_API_TOKEN",
-    "alphavantage": "ALPHAVANTAGE_API_KEY",
-    "biying": "BIYING_API_LICENCE",
-    "eodhd": "EODHD_API_TOKEN",
-    # The following adapters currently have no provider token requirement, but
-    # retain a source-specific maintenance slot for future provider changes or
-    # for the operator's own credential backup.
-    "aktools": "AKTOOLS_API_TOKEN",
-    "baostock": "BAOSTOCK_API_TOKEN",
-    "yfinance": "YFINANCE_API_TOKEN",
-}
-
-_LOCAL_SOURCES = {
-    "aktools": "AKTOOLS_BASE_URL",
-    "baostock": None,
-    "yfinance": None,
-}
-
-
 def _print_source_help(output: Callable[[str], None]) -> None:
-    output("Usage: finance-agent source {status|check|set-token|delete-token} [alltick|alphavantage|biying|eodhd|aktools|baostock|yfinance]")
+    names = "|".join(data_source_names())
+    output(f"Usage: finance-agent source {{list|status|check|set-token|delete-token}} [{names}]")
+    output("  list                   List all catalogued source-maintenance entries; never prints tokens.")
     output("  status                 Show source configuration; never prints tokens or URLs.")
     output("  check aktools          Show the current version reported by the running AkTools service.")
     output("  set-token <source>     Prompt securely for a credential or token backup for any source.")
     output("  delete-token <source>  Remove a saved data-source credential after confirmation.")
-    output("  alphavantage           Free keys are locally guarded at 25 requests/day and 15-second spacing.")
-    output("  eodhd                  Free keys are locally guarded at 20 requests/day and 3-second spacing.")
-    output("  aktools                Has an optional credential-maintenance slot; configure URL with AKTOOLS_BASE_URL.")
-    output("  baostock               Has an optional credential-maintenance slot; anonymous requests stay below 50,000/IP/day.")
-    output("  yfinance               Has an optional credential-maintenance slot; Yahoo Finance data is personal-research only.")
 
 
 def run_source_command(
@@ -76,44 +54,50 @@ def run_source_command(
         return 0
 
     command, *sources = arguments
+    if command == "list":
+        if sources:
+            _print_source_help(output)
+            return 2
+        for definition in DATA_SOURCE_CATALOG:
+            usage = "required by current adapter" if definition.token_required_by_adapter else "maintenance only"
+            output(
+                f"{definition.name}: {definition.display_name}; "
+                f"credential slot {usage} ({definition.token_environment_variable})"
+            )
+        return 0
+
     if command == "status":
-        selected = sources or list(_TOKEN_SOURCES)
+        selected = sources or list(data_source_names())
         for source in selected:
-            environment_variable = _TOKEN_SOURCES.get(source)
-            if environment_variable is None:
+            definition = get_data_source(source)
+            if definition is None:
                 output(f"Unknown source: {source}")
                 return 2
             try:
-                token = resolve_token(source, environment_variable, store)
+                token = resolve_token(definition.name, definition.token_environment_variable, store)
             except SecretStoreError:
-                output(f"{source}: saved token cannot be read; delete and set it again.")
+                output(f"{definition.name}: saved token cannot be read; delete and set it again.")
                 return 1
             token_status = (
-                f"configured via {'environment variable' if token == getenv(environment_variable) else 'secure local store'}"
+                f"configured via {'environment variable' if token == getenv(definition.token_environment_variable) else 'secure local store'}"
                 if token
                 else "not configured"
             )
-            if source in _LOCAL_SOURCES:
-                configuration_variable = _LOCAL_SOURCES[source]
-                if configuration_variable:
+            if not definition.token_required_by_adapter:
+                if definition.base_url_environment_variable:
+                    configuration_variable = definition.base_url_environment_variable
                     origin = "environment variable" if getenv(configuration_variable) else "default local address"
                     output(
-                        f"{source}: base URL from {origin} (checked on demand); "
+                        f"{definition.name}: base URL from {origin} (checked on demand); "
                         f"optional token {token_status} (not used by current adapter)"
                     )
                 else:
-                    if source == "baostock":
-                        output(
-                            "baostock: anonymous sessions use a local 5,000 requests/day guard; "
-                            f"optional token {token_status} (not used by current adapter)"
-                        )
-                    else:
-                        output(
-                            "yfinance: local 1,000 requests/day guard for personal research; "
-                            f"optional token {token_status} (not used by current adapter)"
-                        )
+                    output(
+                        f"{definition.name}: {definition.status_description}; "
+                        f"optional token {token_status} (not used by current adapter)"
+                    )
                 continue
-            output(f"{source}: {token_status}")
+            output(f"{definition.name}: {token_status}")
         return 0
 
     if command == "check":
@@ -132,10 +116,10 @@ def run_source_command(
         output(f"aktools: local service version {version_report.aktools_current}")
         return 0
 
-    if len(sources) != 1 or sources[0] not in _TOKEN_SOURCES:
+    if len(sources) != 1 or (definition := get_data_source(sources[0])) is None:
         _print_source_help(output)
         return 2
-    source = sources[0]
+    source = definition.name
     active_store = store or TokenStore()
 
     if command == "set-token":
