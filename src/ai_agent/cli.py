@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from os import getenv
 from pathlib import Path
 
 from .agent import Agent
@@ -9,7 +10,7 @@ from .config import AgentSettings
 from .memory import ConversationMemory
 from .providers.echo import EchoModelClient
 from .skills import compose_system_prompt, load_skills
-from .tools import ToolRegistry, create_echo_tool
+from .tools import ToolRegistry, create_alltick_market_data_tool, create_echo_tool
 
 
 def main() -> None:
@@ -23,10 +24,15 @@ def main() -> None:
     project_root = Path(__file__).resolve().parents[2]
     skills = load_skills(project_root / "skills")
     system_prompt = compose_system_prompt(settings.system_prompt, skills)
+    registered_tools = [create_echo_tool()]
+    if getenv("ALLTICK_API_TOKEN"):
+        from .market_data.alltick import AllTickClient
+
+        registered_tools.append(create_alltick_market_data_tool(AllTickClient.from_environment()))
     agent = Agent(
         model=EchoModelClient(),
         memory=ConversationMemory(system_prompt, settings.memory_window),
-        tools=ToolRegistry((create_echo_tool(),)),
+        tools=ToolRegistry(tuple(registered_tools)),
     )
     print(f"AI Agent framework ready ({len(skills)} skills loaded). Type 'exit' to quit.")
     while True:

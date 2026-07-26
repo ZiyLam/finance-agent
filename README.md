@@ -42,6 +42,25 @@ ai-agent
 2. 将适配器注入 `Agent`，或在后续的应用组合层中按 `AGENT_PROVIDER` 选择适配器。
 3. 通过实现 `Tool` 协议添加业务工具；工具应在自己的边界内完成鉴权、输入校验和审计。
 
+## AllTick 行情数据
+
+内置 `ai_agent.market_data.AllTickClient`，按 AllTick HTTP 文档封装了：
+
+- 批量最新成交价：`/trade-tick`；
+- 单标的历史 K 线：`/kline`；
+- 股票（A/港/美股）与外汇、加密货币、商品等的不同 API 路径；
+- URL 编码的 `query`、唯一 `trace`、`ret/msg/trace` 错误处理；
+- 免费套餐的本地保护限流：10 秒间隔、每分钟 10 次、每天 1000 次，最新价每次最多 5 个代码。
+
+令牌仅从当前进程环境变量读取，绝不可写入 `.env.example`、源码或 Git：
+
+```powershell
+$env:ALLTICK_API_TOKEN = '在此设置你自己的令牌'
+ai-agent
+```
+
+设置变量后，CLI 会额外注册 `alltick_market_data` 工具。它支持 `latest_quotes` 与 `historical_candles` 两种只读动作，供真实模型适配器调用；默认 Echo 模型不会发起网络请求。
+
 可选环境变量：
 
 ```text

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+import json
 from typing import Any, Protocol
 
 
@@ -65,3 +66,79 @@ def create_echo_tool() -> FunctionTool:
         return text
 
     return FunctionTool("echo", "Returns the supplied text unchanged.", echo)
+
+
+def create_alltick_market_data_tool(client: "AllTickClient") -> FunctionTool:
+    """Expose bounded AllTick quote and candle reads to a model provider."""
+
+    from .market_data.alltick import AllTickAssetClass, AllTickKlineType
+
+    def market_data(arguments: Mapping[str, Any]) -> str:
+        action = arguments.get("action", "latest_quotes")
+        asset_class = AllTickAssetClass(str(arguments.get("asset_class", "stock")))
+
+        if action == "latest_quotes":
+            codes = arguments.get("codes")
+            if not isinstance(codes, list) or not all(isinstance(code, str) for code in codes):
+                raise ValueError("'codes' must be a list of product-code strings")
+            quotes = client.latest_quotes(codes, asset_class=asset_class)
+            return json.dumps(
+                {
+                    "source": "AllTick",
+                    "quotes": [
+                        {
+                            "code": quote.code,
+                            "timestamp_ms": quote.timestamp_ms,
+                            "price": str(quote.price),
+                            "volume": str(quote.volume),
+                            "turnover": str(quote.turnover),
+                            "trade_direction": quote.trade_direction,
+                        }
+                        for quote in quotes
+                    ],
+                },
+                ensure_ascii=False,
+            )
+
+        if action == "historical_candles":
+            code = arguments.get("code")
+            if not isinstance(code, str):
+                raise ValueError("'code' must be a product-code string")
+            candles = client.historical_candles(
+                code,
+                asset_class=asset_class,
+                kline_type=AllTickKlineType(int(arguments.get("kline_type", 8))),
+                count=int(arguments.get("count", 30)),
+                timestamp_end=int(arguments.get("timestamp_end", 0)),
+            )
+            return json.dumps(
+                {
+                    "source": "AllTick",
+                    "code": code,
+                    "candles": [
+                        {
+                            "timestamp_seconds": candle.timestamp_seconds,
+                            "open": str(candle.open_price),
+                            "close": str(candle.close_price),
+                            "high": str(candle.high_price),
+                            "low": str(candle.low_price),
+                            "volume": str(candle.volume),
+                            "turnover": str(candle.turnover),
+                        }
+                        for candle in candles
+                    ],
+                },
+                ensure_ascii=False,
+            )
+
+        raise ValueError("'action' must be 'latest_quotes' or 'historical_candles'")
+
+    return FunctionTool(
+        name="alltick_market_data",
+        description=(
+            "Reads AllTick latest quotes or historical candles. Inputs: action "
+            "('latest_quotes' or 'historical_candles'), asset_class ('stock' or 'other'), "
+            "and documented product codes. This tool never trades."
+        ),
+        handler=market_data,
+    )
