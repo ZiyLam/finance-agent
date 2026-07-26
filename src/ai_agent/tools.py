@@ -142,3 +142,57 @@ def create_alltick_market_data_tool(client: "AllTickClient") -> FunctionTool:
         ),
         handler=market_data,
     )
+
+
+def create_biying_market_data_tool(client: "BiyingClient") -> FunctionTool:
+    """Expose bounded 必盈 A-share reads without exposing the certificate."""
+
+    def market_data(arguments: Mapping[str, Any]) -> str:
+        action = arguments.get("action", "realtime_quote")
+        if action == "realtime_quote":
+            code = arguments.get("code")
+            if not isinstance(code, str):
+                raise ValueError("'code' must be a six-digit A-share code")
+            quote = client.realtime_quote(code)
+            return json.dumps(
+                {
+                    "source": "必盈 API",
+                    "code": quote.code,
+                    "updated_at": quote.updated_at,
+                    "price": str(quote.price),
+                    "change_percent": str(quote.change_percent) if quote.change_percent is not None else None,
+                    "open": str(quote.open_price) if quote.open_price is not None else None,
+                    "high": str(quote.high_price) if quote.high_price is not None else None,
+                    "low": str(quote.low_price) if quote.low_price is not None else None,
+                    "volume_lots": str(quote.volume_lots) if quote.volume_lots is not None else None,
+                    "turnover": str(quote.turnover) if quote.turnover is not None else None,
+                    "dynamic_pe": str(quote.dynamic_pe) if quote.dynamic_pe is not None else None,
+                    "pb": str(quote.pb) if quote.pb is not None else None,
+                },
+                ensure_ascii=False,
+            )
+        if action == "find_stocks":
+            query = arguments.get("query")
+            if not isinstance(query, str):
+                raise ValueError("'query' must be a stock code or Chinese stock-name fragment")
+            stocks = client.find_stocks(query, int(arguments.get("limit", 10)))
+            return json.dumps(
+                {
+                    "source": "必盈 API",
+                    "matches": [
+                        {"code": stock.code, "name": stock.name, "exchange": stock.exchange}
+                        for stock in stocks
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        raise ValueError("'action' must be 'realtime_quote' or 'find_stocks'")
+
+    return FunctionTool(
+        name="biying_market_data",
+        description=(
+            "Reads documented 必盈 API沪深 A 股 code lookups or public real-time quotes. "
+            "Inputs: action ('find_stocks' or 'realtime_quote') and query/code. Never trades."
+        ),
+        handler=market_data,
+    )

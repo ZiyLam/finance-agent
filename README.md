@@ -56,8 +56,9 @@ ai-agent
 
 ```powershell
 ai-agent source set-token alltick
+ai-agent source set-token biying
 ai-agent source status
-ai-agent source delete-token alltick
+ai-agent source delete-token biying
 ```
 
 设置命令会用 Windows DPAPI 对令牌加密，并保存到当前 Windows 用户的本地应用数据目录；令牌绝不会写入项目、`.env.example` 或 Git。环境变量仍适用于临时会话和部署，并优先于安全存储：
@@ -68,6 +69,12 @@ ai-agent
 ```
 
 设置变量后，CLI 会额外注册 `alltick_market_data` 工具。它支持 `latest_quotes` 与 `historical_candles` 两种只读动作，供真实模型适配器调用；默认 Echo 模型不会发起网络请求。
+
+## 必盈 API 数据
+
+内置 `ai_agent.market_data.BiyingClient`，封装了必盈 API 的沪深 A 股股票代码检索和“实时交易（公开数据）”接口。它通过 `biying_market_data` 提供 `find_stocks`（最多 20 条匹配）与 `realtime_quote` 两种只读动作，返回价格、涨跌幅、成交量、动态市盈率、市净率及接口返回的更新时间。
+
+必盈证书同样通过 `ai-agent source set-token biying` 加密保存，或用临时变量 `BIYING_API_LICENCE` 覆盖。默认本地限流为 0.2 秒间隔、每分钟 300 次、每天 100 次；每日上限采用文档中心免费版的保守值，确认你的证书套餐后再调整。
 
 可选环境变量：
 

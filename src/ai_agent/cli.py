@@ -14,10 +14,18 @@ from .memory import ConversationMemory
 from .providers.echo import EchoModelClient
 from .secrets import SecretStoreError, TokenStore, resolve_token
 from .skills import compose_system_prompt, load_skills
-from .tools import ToolRegistry, create_alltick_market_data_tool, create_echo_tool
+from .tools import (
+    ToolRegistry,
+    create_alltick_market_data_tool,
+    create_biying_market_data_tool,
+    create_echo_tool,
+)
 
 
-_TOKEN_SOURCES = {"alltick": "ALLTICK_API_TOKEN"}
+_TOKEN_SOURCES = {
+    "alltick": "ALLTICK_API_TOKEN",
+    "biying": "BIYING_API_LICENCE",
+}
 
 
 def _print_source_help(output: Callable[[str], None]) -> None:
@@ -127,6 +135,17 @@ def main(argv: Sequence[str] | None = None) -> None:
         from .market_data.alltick import AllTickClient
 
         registered_tools.append(create_alltick_market_data_tool(AllTickClient(alltick_token)))
+    try:
+        biying_licence = resolve_token("biying", "BIYING_API_LICENCE")
+    except SecretStoreError as error:
+        raise SystemExit(
+            "Could not read the saved 必盈 API certificate. "
+            "Run 'ai-agent source delete-token biying' then set it again."
+        ) from error
+    if biying_licence:
+        from .market_data.biying import BiyingClient
+
+        registered_tools.append(create_biying_market_data_tool(BiyingClient(biying_licence)))
     agent = Agent(
         model=EchoModelClient(),
         memory=ConversationMemory(system_prompt, settings.memory_window),

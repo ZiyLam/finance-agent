@@ -10,6 +10,7 @@ from .alltick import (
     AllTickQuote,
     AllTickRateLimitError,
 )
+from .biying import BiyingClient, BiyingQuote, BiyingStock
 
 __all__ = [
     "FREE_PLAN_LIMITS",
@@ -20,4 +21,7 @@ __all__ = [
     "AllTickKlineType",
     "AllTickQuote",
     "AllTickRateLimitError",
+    "BiyingClient",
+    "BiyingQuote",
+    "BiyingStock",
 ]
