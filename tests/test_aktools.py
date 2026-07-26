@@ -11,6 +11,7 @@ from ai_agent.market_data.aktools import (
     AkToolsClient,
     AkToolsLimits,
     AkToolsTransportError,
+    AkToolsServiceVersion,
 )
 from ai_agent.tools import ToolRegistry, create_aktools_market_data_tool
 
@@ -95,6 +96,23 @@ class AkToolsClientTests(unittest.TestCase):
         with self.assertRaisesRegex(AkToolsTransportError, "Start it"):
             client.stock_zh_a_hist("000001", start_date="20211109", end_date="20211209")
 
+    def test_service_version_uses_local_version_endpoint(self) -> None:
+        transport = RecordingTransport(
+            {
+                "at_current_version": "0.0.91",
+                "at_latest_version": "0.0.91",
+                "ak_current_version": "1.18.78",
+                "ak_latest_version": "1.18.78",
+            }
+        )
+        client = AkToolsClient(limits=AkToolsLimits(0), transport=transport)
+
+        report = client.service_version()
+
+        self.assertEqual(report.aktools_current, "0.0.91")
+        self.assertEqual(report.akshare_current, "1.18.78")
+        self.assertEqual(urlsplit(transport.urls[0]).path, "/version")
+
 
 class AkToolsToolTests(unittest.TestCase):
     def test_tool_limits_context_to_most_recent_requested_rows(self) -> None:
@@ -142,6 +160,59 @@ class AkToolsCliTests(unittest.TestCase):
             output,
             ["aktools: no token required; base URL from default local address (checked on demand)"],
         )
+
+    def test_source_check_reports_supported_aktools_service_version(self) -> None:
+        output: list[str] = []
+
+        result = run_source_command(
+            ["check", "aktools"],
+            output=output.append,
+            aktools_client_factory=lambda: type(
+                "VersionClient",
+                (),
+                {
+                    "service_version": lambda self: AkToolsServiceVersion(
+                        aktools_current="0.0.91",
+                        aktools_latest="0.0.91",
+                        akshare_current="1.18.78",
+                        akshare_latest="1.18.78",
+                    )
+                },
+            )(),
+        )
+
+        self.assertEqual(result, 0)
+        self.assertEqual(
+            output,
+            [
+                "aktools: local service version 0.0.91",
+                "aktools: required version > 0.0.81: OK",
+                "aktools: service-reported latest version 0.0.91",
+            ],
+        )
+
+    def test_source_check_returns_nonzero_for_unsupported_version(self) -> None:
+        output: list[str] = []
+
+        result = run_source_command(
+            ["check", "aktools"],
+            output=output.append,
+            aktools_client_factory=lambda: type(
+                "VersionClient",
+                (),
+                {
+                    "service_version": lambda self: AkToolsServiceVersion(
+                        aktools_current="0.0.81",
+                        aktools_latest=None,
+                        akshare_current=None,
+                        akshare_latest=None,
+                    )
+                },
+            )(),
+        )
+
+        self.assertEqual(result, 1)
+        self.assertEqual(output[1], "aktools: required version > 0.0.81: UPGRADE REQUIRED")
 
 
 if __name__ == "__main__":

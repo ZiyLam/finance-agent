@@ -18,6 +18,7 @@ from .aktools import (
     AkToolsClient,
     AkToolsError,
     AkToolsRateLimitError,
+    AkToolsServiceVersion,
     AkToolsTransportError,
 )
 
@@ -39,5 +40,6 @@ __all__ = [
     "AkToolsClient",
     "AkToolsError",
     "AkToolsRateLimitError",
+    "AkToolsServiceVersion",
     "AkToolsTransportError",
 ]
