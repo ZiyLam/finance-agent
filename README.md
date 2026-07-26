@@ -76,6 +76,31 @@ ai-agent
 
 必盈证书同样通过 `ai-agent source set-token biying` 加密保存，或用临时变量 `BIYING_API_LICENCE` 覆盖。默认本地限流为 0.2 秒间隔、每分钟 300 次、每天 100 次；每日上限采用文档中心免费版的保守值，确认你的证书套餐后再调整。
 
+## AkTools / AKShare 数据
+
+AkTools 不是托管的免鉴权行情 API；它是把 AKShare 函数封装成 HTTP 服务的开源工具。因此本项目无需、也不会保存 AkTools Token，但使用前需要由你在本机或自己的容器环境启动服务。按照 [AkTools 官方文档](https://aktools.akfamily.xyz/aktools/) 可任选一种方式：
+
+```powershell
+python -m pip install aktools
+python -m aktools
+```
+
+或使用文档示例镜像：
+
+```powershell
+docker run -p 8080:8080 registry.cn-shanghai.aliyuncs.com/akfamily/aktools:1.8.95
+```
+
+默认服务地址是 `http://127.0.0.1:8080`。如果服务部署在其他受你控制的地址，在启动 Agent 前设置：
+
+```powershell
+$env:AKTOOLS_BASE_URL = 'http://127.0.0.1:8080'
+ai-agent source status aktools
+ai-agent
+```
+
+Agent 启动不会探测网络，而是始终注册只读的 `aktools_market_data` 工具；所以 AkTools 尚未运行并不会影响 AllTick 或必盈。首次调用失败时，工具会提示启动本地服务。当前封装了文档的 `stock_zh_a_hist`：传入 6 位沪深 A 股代码、`YYYYMMDD` 日期区间、`daily`/`weekly`/`monthly` 周期，以及 `qfq`（前复权）或 `hfq`（后复权）。为了不挤占模型上下文，工具最多返回最近 120 根 K 线；完整区间行数会一并标明。
+
 可选环境变量：
 
 ```text
@@ -83,6 +108,7 @@ AGENT_PROVIDER=echo
 AGENT_MODEL=local-echo
 AGENT_SYSTEM_PROMPT=You are a helpful AI agent.
 AGENT_MEMORY_WINDOW=20
+AKTOOLS_BASE_URL=http://127.0.0.1:8080
 ```
 
 ## 验证

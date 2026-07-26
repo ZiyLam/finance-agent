@@ -196,3 +196,79 @@ def create_biying_market_data_tool(client: "BiyingClient") -> FunctionTool:
         ),
         handler=market_data,
     )
+
+
+def create_aktools_market_data_tool(client: "AkToolsClient") -> FunctionTool:
+    """Expose a bounded, read-only A-share K-line query backed by AkTools."""
+
+    from .market_data.aktools import AkToolsError
+
+    def market_data(arguments: Mapping[str, Any]) -> str:
+        symbol = arguments.get("symbol")
+        start_date = arguments.get("start_date")
+        end_date = arguments.get("end_date")
+        if not all(isinstance(value, str) for value in (symbol, start_date, end_date)):
+            raise ValueError("'symbol', 'start_date', and 'end_date' must be strings")
+        period = arguments.get("period", "daily")
+        adjust = arguments.get("adjust", "")
+        if not isinstance(period, str) or not isinstance(adjust, str):
+            raise ValueError("'period' and 'adjust' must be strings")
+        limit = arguments.get("limit", 120)
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 120:
+            raise ValueError("'limit' must be an integer between 1 and 120")
+        try:
+            candles = client.stock_zh_a_hist(
+                symbol,
+                period=period,
+                start_date=start_date,
+                end_date=end_date,
+                adjust=adjust,
+            )
+        except AkToolsError as error:
+            return f"ERROR: {error}"
+        return json.dumps(
+            {
+                "source": "AkTools (local AKShare service)",
+                "symbol": symbol,
+                "period": period,
+                "adjust": adjust or "none",
+                "returned_rows": len(candles),
+                "shown_rows": min(len(candles), limit),
+                "candles": [
+                    {
+                        "date": candle.date,
+                        "open": str(candle.open_price),
+                        "close": str(candle.close_price),
+                        "high": str(candle.high_price),
+                        "low": str(candle.low_price),
+                        "volume": str(candle.volume) if candle.volume is not None else None,
+                        "turnover": str(candle.turnover) if candle.turnover is not None else None,
+                        "amplitude_percent": str(candle.amplitude_percent)
+                        if candle.amplitude_percent is not None
+                        else None,
+                        "change_percent": str(candle.change_percent)
+                        if candle.change_percent is not None
+                        else None,
+                        "change_amount": str(candle.change_amount)
+                        if candle.change_amount is not None
+                        else None,
+                        "turnover_rate_percent": str(candle.turnover_rate_percent)
+                        if candle.turnover_rate_percent is not None
+                        else None,
+                    }
+                    for candle in candles[-limit:]
+                ],
+            },
+            ensure_ascii=False,
+        )
+
+    return FunctionTool(
+        name="aktools_market_data",
+        description=(
+            "Reads A-share historical K lines from an operator-started local AkTools service. "
+            "Inputs: symbol (six digits), start_date/end_date (YYYYMMDD), period "
+            "('daily', 'weekly', 'monthly'), adjust ('', 'qfq', 'hfq'), and optional limit "
+            "(1-120). The tool never trades and does not require an API token."
+        ),
+        handler=market_data,
+    )

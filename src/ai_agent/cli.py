@@ -16,6 +16,7 @@ from .secrets import SecretStoreError, TokenStore, resolve_token
 from .skills import compose_system_prompt, load_skills
 from .tools import (
     ToolRegistry,
+    create_aktools_market_data_tool,
     create_alltick_market_data_tool,
     create_biying_market_data_tool,
     create_echo_tool,
@@ -27,12 +28,17 @@ _TOKEN_SOURCES = {
     "biying": "BIYING_API_LICENCE",
 }
 
+_LOCAL_SOURCES = {
+    "aktools": "AKTOOLS_BASE_URL",
+}
+
 
 def _print_source_help(output: Callable[[str], None]) -> None:
-    output("Usage: ai-agent source {status|set-token|delete-token} [alltick]")
-    output("  status                 Show whether each source is configured; never prints tokens.")
-    output("  set-token alltick      Prompt securely and save the token for this Windows user.")
-    output("  delete-token alltick   Remove the saved token after confirmation.")
+    output("Usage: ai-agent source {status|set-token|delete-token} [alltick|biying|aktools]")
+    output("  status                 Show source configuration; never prints tokens or URLs.")
+    output("  set-token <source>     Prompt securely for an AllTick or 必盈 API credential.")
+    output("  delete-token <source>  Remove a saved AllTick or 必盈 credential after confirmation.")
+    output("  aktools                Needs no token; configure its local URL with AKTOOLS_BASE_URL.")
 
 
 def run_source_command(
@@ -51,12 +57,16 @@ def run_source_command(
 
     command, *sources = arguments
     if command == "status":
-        selected = sources or list(_TOKEN_SOURCES)
+        selected = sources or [*list(_TOKEN_SOURCES), *list(_LOCAL_SOURCES)]
         for source in selected:
             environment_variable = _TOKEN_SOURCES.get(source)
-            if environment_variable is None:
+            if environment_variable is None and source not in _LOCAL_SOURCES:
                 output(f"Unknown source: {source}")
                 return 2
+            if source in _LOCAL_SOURCES:
+                origin = "environment variable" if getenv(_LOCAL_SOURCES[source]) else "default local address"
+                output(f"{source}: no token required; base URL from {origin} (checked on demand)")
+                continue
             try:
                 token = resolve_token(source, environment_variable, store)
             except SecretStoreError:
@@ -146,6 +156,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         from .market_data.biying import BiyingClient
 
         registered_tools.append(create_biying_market_data_tool(BiyingClient(biying_licence)))
+    from .market_data.aktools import AkToolsClient
+
+    # Construction does not call the network. The tool reports a clear error if
+    # the optional locally managed service is not running when it is invoked.
+    registered_tools.append(create_aktools_market_data_tool(AkToolsClient.from_environment()))
     agent = Agent(
         model=EchoModelClient(),
         memory=ConversationMemory(system_prompt, settings.memory_window),
