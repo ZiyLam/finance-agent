@@ -43,7 +43,6 @@ DATA_SOURCE_CATALOG = (
     DataSourceDefinition("biying", "必盈 API", "BIYING_API_LICENCE", True),
     DataSourceDefinition("eodhd", "EOD Historical Data (EODHD)", "EODHD_API_TOKEN", True),
     DataSourceDefinition("qianfan", "百度智能云千帆 LLM", "QIANFAN_API_KEY", True),
-    DataSourceDefinition("xingchen", "讯飞星辰 MaaS LLM", "XINGCHEN_API_KEY", True),
     DataSourceDefinition(
         "aktools",
         "AkTools / AKShare",

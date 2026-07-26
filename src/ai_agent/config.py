@@ -16,7 +16,6 @@ class AgentSettings:
     memory_window: int = 20
     codex_timeout_seconds: float = 120.0
     qianfan_timeout_seconds: float = 60.0
-    xingchen_timeout_seconds: float = 60.0
 
     @classmethod
     def from_environment(cls) -> "AgentSettings":
@@ -29,9 +28,6 @@ class AgentSettings:
         qianfan_timeout_seconds = float(getenv("AGENT_QIANFAN_TIMEOUT_SECONDS", "60"))
         if qianfan_timeout_seconds <= 0:
             raise ValueError("AGENT_QIANFAN_TIMEOUT_SECONDS must be positive")
-        xingchen_timeout_seconds = float(getenv("AGENT_XINGCHEN_TIMEOUT_SECONDS", "60"))
-        if xingchen_timeout_seconds <= 0:
-            raise ValueError("AGENT_XINGCHEN_TIMEOUT_SECONDS must be positive")
         provider = getenv("AGENT_PROVIDER", "codex").strip().lower()
         configured_model = getenv("AGENT_MODEL", "")
         if provider == "qianfan" and not configured_model.strip():
@@ -44,5 +40,4 @@ class AgentSettings:
             memory_window=memory_window,
             codex_timeout_seconds=codex_timeout_seconds,
             qianfan_timeout_seconds=qianfan_timeout_seconds,
-            xingchen_timeout_seconds=xingchen_timeout_seconds,
         )

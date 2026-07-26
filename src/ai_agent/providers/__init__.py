@@ -4,7 +4,6 @@ from .base import ModelClient
 from .codex_cli import CodexCliError, CodexCliModelClient
 from .echo import EchoModelClient
 from .qianfan import QianfanError, QianfanModelClient
-from .xingchen import XingchenError, XingchenModelClient
 
 __all__ = [
     "CodexCliError",
@@ -13,6 +12,4 @@ __all__ = [
     "ModelClient",
     "QianfanError",
     "QianfanModelClient",
-    "XingchenError",
-    "XingchenModelClient",
 ]

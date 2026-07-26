@@ -15,11 +15,6 @@ from .memory import ConversationMemory
 from .providers.codex_cli import CodexCliError, CodexCliModelClient
 from .providers.echo import EchoModelClient
 from .providers.qianfan import QianfanError, QianfanModelClient
-from .providers.xingchen import (
-    DEFAULT_XINGCHEN_API_BASE,
-    XingchenError,
-    XingchenModelClient,
-)
 from .secrets import SecretStoreError, TokenStore, resolve_token
 from .skills import compose_system_prompt, load_skills
 from .tools import (
@@ -193,36 +188,9 @@ def main(argv: Sequence[str] | None = None) -> None:
             model=settings.model,
             timeout_seconds=settings.qianfan_timeout_seconds,
         )
-    elif settings.provider == "xingchen":
-        try:
-            xingchen_api_key = resolve_token("xingchen", "XINGCHEN_API_KEY")
-        except SecretStoreError as error:
-            raise SystemExit(
-                "Could not read the saved Xingchen API key. "
-                "Run 'finance-agent source delete-token xingchen' then set it again."
-            ) from error
-        if not xingchen_api_key:
-            raise SystemExit(
-                "Xingchen API key is not configured. Run 'finance-agent source set-token xingchen' "
-                "or set XINGCHEN_API_KEY for this process."
-            )
-        if not settings.model.strip():
-            raise SystemExit(
-                "Xingchen model ID is not configured. Copy the modelId from the Xingchen service list "
-                "to AGENT_MODEL before starting the Agent."
-            )
-        try:
-            model = XingchenModelClient(
-                xingchen_api_key,
-                model=settings.model,
-                api_base=getenv("XINGCHEN_API_BASE", DEFAULT_XINGCHEN_API_BASE),
-                timeout_seconds=settings.xingchen_timeout_seconds,
-            )
-        except ValueError as error:
-            raise SystemExit(f"Xingchen configuration is invalid: {error}") from error
     else:
         raise SystemExit(
-            f"Provider '{settings.provider}' is not configured. Use 'codex', 'qianfan', 'xingchen', or 'echo'."
+            f"Provider '{settings.provider}' is not configured. Use 'codex', 'qianfan', or 'echo'."
         )
 
     project_root = Path(__file__).resolve().parents[2]
@@ -303,8 +271,6 @@ def main(argv: Sequence[str] | None = None) -> None:
                 print(f"Codex model request failed: {error}")
             except QianfanError as error:
                 print(f"Qianfan model request failed: {error}")
-            except XingchenError as error:
-                print(f"Xingchen model request failed: {error}")
 
 
 if __name__ == "__main__":
