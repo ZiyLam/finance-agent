@@ -179,6 +179,7 @@ class SecurityAnalysisPlan:
     primary_source: SourceRoute
     fallback_sources: tuple[SourceRoute, ...]
     model: ModelRoute
+    required_successful_sources: int = 1
     required_evidence_fields: tuple[str, ...] = (
         "source",
         "retrieved_at",
@@ -201,6 +202,7 @@ class SecurityAnalysisPlan:
                 "primary_source": self.primary_source.to_dict(),
                 "fallback_sources": [source.to_dict() for source in self.fallback_sources],
                 "model": self.model.to_dict(),
+                "required_successful_sources": self.required_successful_sources,
             },
             "required_evidence_fields": list(self.required_evidence_fields),
             "required_risk_fields": list(self.required_risk_fields),
@@ -241,6 +243,7 @@ def build_security_analysis_plan(
         primary_source=sources[0],
         fallback_sources=tuple(sources[1:]),
         model=ModelRoute.from_definition(model),
+        required_successful_sources=rule.minimum_sources,
     )
 
 

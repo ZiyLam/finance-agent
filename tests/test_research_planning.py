@@ -22,6 +22,7 @@ class ResearchPlanningTests(unittest.TestCase):
         self.assertEqual(plan.primary_source.name, "biying")
         self.assertEqual([source.name for source in plan.fallback_sources], ["alltick"])
         self.assertEqual(plan.model.provider, "codex")
+        self.assertEqual(plan.required_successful_sources, 1)
         self.assertIn("source_timestamp", plan.required_evidence_fields)
         self.assertIn("evidence_refs", plan.required_risk_fields)
 
@@ -44,6 +45,7 @@ class ResearchPlanningTests(unittest.TestCase):
             all("global_markets" in source.tags for source in routed_sources),
         )
         self.assertEqual(plan.model.provider, "qianfan")
+        self.assertEqual(plan.required_successful_sources, 1)
 
     def test_validation_requires_dates_and_compatible_model_tags(self) -> None:
         missing_dates = SecurityAnalysisRequest(
@@ -64,6 +66,17 @@ class ResearchPlanningTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not suitable"):
             build_security_analysis_plan(request, provider="echo")
 
+        validation_plan = build_security_analysis_plan(
+            SecurityAnalysisRequest(
+                symbol="600000",
+                market=Market.A_SHARE,
+                scenario=AnalysisScenario.CROSS_SOURCE_HISTORY_VALIDATION,
+                start_date="2026-01-01",
+                end_date="2026-01-31",
+            )
+        )
+        self.assertEqual(validation_plan.required_successful_sources, 2)
+
     def test_catalog_and_cli_expose_source_and_model_tags_without_credentials(self) -> None:
         snapshot = catalog_snapshot()
         biying = next(source for source in snapshot["data_sources"] if source["name"] == "biying")
@@ -83,6 +96,7 @@ class ResearchPlanningTests(unittest.TestCase):
         payload = json.loads(output[0])
         self.assertEqual(payload["contract_version"], "security-analysis-plan/v1")
         self.assertEqual(payload["routing"]["primary_source"]["name"], "aktools")
+        self.assertEqual(payload["routing"]["required_successful_sources"], 1)
         self.assertNotIn("token", output[0].lower())
 
 

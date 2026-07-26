@@ -94,7 +94,15 @@ finance-agent route scenarios
 finance-agent route plan a_share_price_history a_share 600000 codex 2026-01-01 2026-01-31
 ```
 
-首版场景包括证券检索、A 股实时行情、全球市场快照、A 股/全球历史行情、A 股估值快照、跨源历史验证和研究简报。路由优先级由代码维护，例如 A 股历史优先 AkTools、再回退 BaoStock 与 AllTick；全球历史优先 EODHD、再回退 yfinance、Alpha Vantage 与 AllTick。下一阶段的数据执行器将按该计划调用来源并保留原始来源、采集时间、源时间戳、时效标签和风险证据。
+首版场景包括证券检索、A 股实时行情、全球市场快照、A 股/全球历史行情、A 股估值快照、跨源历史验证和研究简报。路由优先级由代码维护，例如 A 股历史优先 AkTools、再回退 BaoStock 与 AllTick；全球历史优先 EODHD、再回退 yfinance、Alpha Vantage 与 AllTick。
+
+执行一个只读数据分析计划：
+
+```powershell
+.\resources\finance-agent.ps1 analyze a_share_price_history a_share 600000 2026-01-01 2026-01-31
+```
+
+该命令只调用计划中的本地数据工具，输出 `security-analysis-result/v1` JSON：主/回退来源、原始工具名、采集时间、来源时间戳、时效标签、失败记录和风险标记都会保留。它不调用 LLM，不会交易，也不会形成最终投资建议；模型叙述层将在后续阶段读取这份带证据的结果。对于无法保证精确历史日期范围或代码映射的适配器，执行器会安全记录失败并继续使用计划内回退源，绝不会猜测、填充或伪造数据。
 
 ## AllTick 行情数据
 
