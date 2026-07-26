@@ -23,6 +23,7 @@ from .research_planning import (
     build_security_analysis_plan,
     catalog_snapshot,
 )
+from .research_report import SecurityResearchReportBuilder
 from .secrets import SecretStoreError, TokenStore, resolve_token
 from .skills import compose_system_prompt, load_skills
 from .tools import (
@@ -59,6 +60,11 @@ def _print_route_help(output: Callable[[str], None]) -> None:
 def _print_analyze_help(output: Callable[[str], None]) -> None:
     output("Usage: finance-agent analyze <scenario> <market> <symbol> [start_date end_date]")
     output("  Execute a read-only plan with configured local data tools and return evidence JSON.")
+
+
+def _print_report_help(output: Callable[[str], None]) -> None:
+    output("Usage: finance-agent report <market> <symbol> <start_date> <end_date>")
+    output("  Create a read-only report after a two-source historical cross-check, as JSON and Markdown.")
 
 
 def run_source_command(
@@ -253,6 +259,41 @@ def run_analyze_command(
     return 0
 
 
+def run_report_command(
+    arguments: Sequence[str],
+    *,
+    tools: ToolRegistry,
+    output: Callable[[str], None] = print,
+) -> int:
+    """Create a deterministic single-security market-data research report."""
+
+    if not arguments or arguments[0] in {"help", "--help", "-h"}:
+        _print_report_help(output)
+        return 0
+    if len(arguments) != 4:
+        _print_report_help(output)
+        return 2
+    market_text, symbol, start_date, end_date = arguments
+    try:
+        request = SecurityAnalysisRequest(
+            symbol=symbol,
+            market=Market(market_text),
+            scenario=AnalysisScenario.CROSS_SOURCE_HISTORY_VALIDATION,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        analysis_result = SecurityAnalysisExecutor(tools).execute(request)
+        report = SecurityResearchReportBuilder().build(analysis_result)
+    except ValueError as error:
+        output(f"Could not create research report: {error}")
+        return 2
+    except RuntimeError as error:
+        output(f"Could not create research report: {error}")
+        return 1
+    output(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
+    return 0
+
+
 def _build_registered_tools(*, include_echo: bool = True) -> ToolRegistry:
     """Build read-only local tools without constructing an LLM client."""
 
@@ -334,10 +375,19 @@ def main(argv: Sequence[str] | None = None) -> None:
             if exit_code:
                 raise SystemExit(exit_code)
             return
+        if arguments[0] == "report":
+            exit_code = run_report_command(
+                arguments[1:],
+                tools=_build_registered_tools(include_echo=False),
+            )
+            if exit_code:
+                raise SystemExit(exit_code)
+            return
         else:
             _print_source_help(print)
             _print_route_help(print)
             _print_analyze_help(print)
+            _print_report_help(print)
             raise SystemExit(2)
 
     settings = AgentSettings.from_environment()

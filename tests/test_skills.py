@@ -14,6 +14,7 @@ class SkillLoadingTests(unittest.TestCase):
         self.assertEqual([skill.name for skill in skills], ["financial-investment-analyst"])
         prompt = compose_system_prompt("Base prompt.", skills)
         self.assertIn("金融分析", prompt)
+        self.assertIn("security-research-report/v1", prompt)
         self.assertIn("Base prompt.", prompt)
 
 
