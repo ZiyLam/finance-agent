@@ -168,7 +168,10 @@ class YFinanceCliTests(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertEqual(
             output,
-            ["yfinance: no token required; local 1,000 requests/day guard for personal research"],
+            [
+                "yfinance: local 1,000 requests/day guard for personal research; "
+                "optional token not configured (not used by current adapter)"
+            ],
         )
 
 

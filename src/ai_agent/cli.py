@@ -32,6 +32,12 @@ _TOKEN_SOURCES = {
     "alphavantage": "ALPHAVANTAGE_API_KEY",
     "biying": "BIYING_API_LICENCE",
     "eodhd": "EODHD_API_TOKEN",
+    # The following adapters currently have no provider token requirement, but
+    # retain a source-specific maintenance slot for future provider changes or
+    # for the operator's own credential backup.
+    "aktools": "AKTOOLS_API_TOKEN",
+    "baostock": "BAOSTOCK_API_TOKEN",
+    "yfinance": "YFINANCE_API_TOKEN",
 }
 
 _LOCAL_SOURCES = {
@@ -45,13 +51,13 @@ def _print_source_help(output: Callable[[str], None]) -> None:
     output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|alphavantage|biying|eodhd|aktools|baostock|yfinance]")
     output("  status                 Show source configuration; never prints tokens or URLs.")
     output("  check aktools          Show the current version reported by the running AkTools service.")
-    output("  set-token <source>     Prompt securely for an AllTick, Alpha Vantage, or 必盈 API credential.")
+    output("  set-token <source>     Prompt securely for a credential or token backup for any source.")
     output("  delete-token <source>  Remove a saved data-source credential after confirmation.")
     output("  alphavantage           Free keys are locally guarded at 25 requests/day and 15-second spacing.")
     output("  eodhd                  Free keys are locally guarded at 20 requests/day and 3-second spacing.")
-    output("  aktools                Needs no token; configure its local URL with AKTOOLS_BASE_URL.")
-    output("  baostock               Needs no token; local requests stay below its 50,000/IP/day provider limit.")
-    output("  yfinance               Needs no token; Yahoo Finance data is limited to personal research use.")
+    output("  aktools                Has an optional credential-maintenance slot; configure URL with AKTOOLS_BASE_URL.")
+    output("  baostock               Has an optional credential-maintenance slot; anonymous requests stay below 50,000/IP/day.")
+    output("  yfinance               Has an optional credential-maintenance slot; Yahoo Finance data is personal-research only.")
 
 
 def run_source_command(
@@ -71,35 +77,43 @@ def run_source_command(
 
     command, *sources = arguments
     if command == "status":
-        selected = sources or [*list(_TOKEN_SOURCES), *list(_LOCAL_SOURCES)]
+        selected = sources or list(_TOKEN_SOURCES)
         for source in selected:
             environment_variable = _TOKEN_SOURCES.get(source)
-            if environment_variable is None and source not in _LOCAL_SOURCES:
+            if environment_variable is None:
                 output(f"Unknown source: {source}")
                 return 2
-            if source in _LOCAL_SOURCES:
-                configuration_variable = _LOCAL_SOURCES[source]
-                if configuration_variable:
-                    origin = "environment variable" if getenv(configuration_variable) else "default local address"
-                    output(f"{source}: no token required; base URL from {origin} (checked on demand)")
-                else:
-                    if source == "baostock":
-                        output(
-                            "baostock: no token required; anonymous sessions use a local 5,000 requests/day guard"
-                        )
-                    else:
-                        output("yfinance: no token required; local 1,000 requests/day guard for personal research")
-                continue
             try:
                 token = resolve_token(source, environment_variable, store)
             except SecretStoreError:
                 output(f"{source}: saved token cannot be read; delete and set it again.")
                 return 1
-            if token:
-                origin = "environment variable" if token == getenv(environment_variable) else "secure local store"
-                output(f"{source}: configured via {origin}")
-            else:
-                output(f"{source}: not configured")
+            token_status = (
+                f"configured via {'environment variable' if token == getenv(environment_variable) else 'secure local store'}"
+                if token
+                else "not configured"
+            )
+            if source in _LOCAL_SOURCES:
+                configuration_variable = _LOCAL_SOURCES[source]
+                if configuration_variable:
+                    origin = "environment variable" if getenv(configuration_variable) else "default local address"
+                    output(
+                        f"{source}: base URL from {origin} (checked on demand); "
+                        f"optional token {token_status} (not used by current adapter)"
+                    )
+                else:
+                    if source == "baostock":
+                        output(
+                            "baostock: anonymous sessions use a local 5,000 requests/day guard; "
+                            f"optional token {token_status} (not used by current adapter)"
+                        )
+                    else:
+                        output(
+                            "yfinance: local 1,000 requests/day guard for personal research; "
+                            f"optional token {token_status} (not used by current adapter)"
+                        )
+                continue
+            output(f"{source}: {token_status}")
         return 0
 
     if command == "check":

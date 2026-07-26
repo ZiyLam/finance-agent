@@ -53,6 +53,22 @@ class TokenStoreTests(unittest.TestCase):
             self.assertNotIn("secret-never-display", "\n".join(output))
             self.assertEqual(store.get_token("alltick"), "secret-never-display")
 
+    def test_token_maintenance_is_available_for_a_token_free_source(self) -> None:
+        with TemporaryDirectory() as directory:
+            store = self.make_store(directory)
+            output: list[str] = []
+
+            result = run_source_command(
+                ["set-token", "yfinance"],
+                store=store,
+                secret_input=lambda _: "future-provider-token",
+                output=output.append,
+            )
+
+            self.assertEqual(result, 0)
+            self.assertEqual(store.get_token("yfinance"), "future-provider-token")
+            self.assertNotIn("future-provider-token", "\n".join(output))
+
 
 if __name__ == "__main__":
     unittest.main()

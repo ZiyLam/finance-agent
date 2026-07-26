@@ -157,7 +157,10 @@ class AkToolsCliTests(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertEqual(
             output,
-            ["aktools: no token required; base URL from default local address (checked on demand)"],
+            [
+                "aktools: base URL from default local address (checked on demand); "
+                "optional token not configured (not used by current adapter)"
+            ],
         )
 
     def test_source_check_reports_current_aktools_service_version(self) -> None:

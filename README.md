@@ -63,6 +63,8 @@ ai-agent source status
 ai-agent source delete-token biying
 ```
 
+每个已接入的数据源均保留 `set-token`、`status` 与 `delete-token` 维护入口，包括当前不需要鉴权的 AkTools、BaoStock 和 yfinance。后者的维护项仅用于将来服务变更或操作者自行备忘，当前适配器不会读取或发送其中的值；状态命令会明确标示这一点。
+
 设置命令会用 Windows DPAPI 对令牌加密，并保存到当前 Windows 用户的本地应用数据目录；令牌绝不会写入项目、`.env.example` 或 Git。环境变量仍适用于临时会话和部署，并优先于安全存储：
 
 ```powershell

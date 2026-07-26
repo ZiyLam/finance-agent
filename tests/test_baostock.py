@@ -172,7 +172,10 @@ class BaoStockCliTests(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertEqual(
             output,
-            ["baostock: no token required; anonymous sessions use a local 5,000 requests/day guard"],
+            [
+                "baostock: anonymous sessions use a local 5,000 requests/day guard; "
+                "optional token not configured (not used by current adapter)"
+            ],
         )
 
 
