@@ -15,7 +15,16 @@ class DataSourceCatalogTests(unittest.TestCase):
         )
         self.assertEqual(
             set(data_source_names()),
-            {"alltick", "alphavantage", "biying", "eodhd", "aktools", "baostock", "yfinance"},
+            {
+                "alltick",
+                "alphavantage",
+                "biying",
+                "eodhd",
+                "aktools",
+                "baostock",
+                "yfinance",
+                "futu",
+            },
         )
 
     def test_source_list_is_generated_from_the_catalog(self) -> None:
@@ -27,6 +36,7 @@ class DataSourceCatalogTests(unittest.TestCase):
         self.assertEqual(len(output), len(DATA_SOURCE_CATALOG))
         self.assertTrue(any(line.startswith("alltick:") for line in output))
         self.assertTrue(any(line.startswith("yfinance:") for line in output))
+        self.assertTrue(any(line.startswith("futu:") for line in output))
         self.assertTrue(all("credential slot" in line for line in output))
 
 
