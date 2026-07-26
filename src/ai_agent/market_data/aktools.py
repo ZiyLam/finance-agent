@@ -72,12 +72,9 @@ class AkToolsCandle:
 
 @dataclass(frozen=True, slots=True)
 class AkToolsServiceVersion:
-    """Version information reported by a running AkTools service."""
+    """The current AkTools version reported by a running local service."""
 
     aktools_current: str
-    aktools_latest: str | None
-    akshare_current: str | None
-    akshare_latest: str | None
 
 
 Transport = Callable[[str], bytes]
@@ -166,9 +163,6 @@ class AkToolsClient:
             raise AkToolsApiError("AkTools returned an unexpected version payload")
         return AkToolsServiceVersion(
             aktools_current=self._required_version(payload, "at_current_version"),
-            aktools_latest=self._optional_version(payload, "at_latest_version"),
-            akshare_current=self._optional_version(payload, "ak_current_version"),
-            akshare_latest=self._optional_version(payload, "ak_latest_version"),
         )
 
     def _get_json(self, path: str, parameters: Mapping[str, str]) -> Any:
@@ -275,16 +269,7 @@ class AkToolsClient:
 
     @staticmethod
     def _required_version(payload: Mapping[str, Any], key: str) -> str:
-        value = AkToolsClient._optional_version(payload, key)
-        if value is None:
-            raise AkToolsApiError(f"AkTools version report is missing {key}")
-        return value
-
-    @staticmethod
-    def _optional_version(payload: Mapping[str, Any], key: str) -> str | None:
         value = payload.get(key)
-        if value is None:
-            return None
         if not isinstance(value, str) or not value.strip():
-            raise AkToolsApiError(f"AkTools version report has an invalid {key}")
+            raise AkToolsApiError(f"AkTools version report is missing {key}")
         return value.strip()

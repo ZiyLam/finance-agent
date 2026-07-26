@@ -36,7 +36,7 @@ _LOCAL_SOURCES = {
 def _print_source_help(output: Callable[[str], None]) -> None:
     output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|biying|aktools]")
     output("  status                 Show source configuration; never prints tokens or URLs.")
-    output("  check aktools          Verify the running AkTools service version is newer than 0.0.81.")
+    output("  check aktools          Show the current version reported by the running AkTools service.")
     output("  set-token <source>     Prompt securely for an AllTick or 必盈 API credential.")
     output("  delete-token <source>  Remove a saved AllTick or 必盈 credential after confirmation.")
     output("  aktools                Needs no token; configure its local URL with AKTOOLS_BASE_URL.")
@@ -94,19 +94,8 @@ def run_source_command(
         except (AkToolsError, ValueError) as error:
             output(f"aktools: version check failed: {error}")
             return 1
-        try:
-            is_supported = _is_version_greater_than(version_report.aktools_current, "0.0.81")
-        except ValueError:
-            output(
-                "aktools: version check failed: service returned an unrecognised "
-                f"version '{version_report.aktools_current}'"
-            )
-            return 1
         output(f"aktools: local service version {version_report.aktools_current}")
-        output(f"aktools: required version > 0.0.81: {'OK' if is_supported else 'UPGRADE REQUIRED'}")
-        if version_report.aktools_latest:
-            output(f"aktools: service-reported latest version {version_report.aktools_latest}")
-        return 0 if is_supported else 1
+        return 0
 
     if len(sources) != 1 or sources[0] not in _TOKEN_SOURCES:
         _print_source_help(output)
@@ -139,18 +128,6 @@ def run_source_command(
 
     _print_source_help(output)
     return 2
-
-
-def _is_version_greater_than(value: str, minimum: str) -> bool:
-    """Compare simple numeric release versions without adding a package dependency."""
-
-    def parse(version: str) -> tuple[int, ...]:
-        pieces = version.split(".")
-        if not pieces or any(not piece.isdigit() for piece in pieces):
-            raise ValueError("version must contain only numeric dot-separated components")
-        return tuple(int(piece) for piece in pieces)
-
-    return parse(value) > parse(minimum)
 
 
 def main(argv: Sequence[str] | None = None) -> None:

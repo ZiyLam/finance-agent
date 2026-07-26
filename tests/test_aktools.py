@@ -110,7 +110,6 @@ class AkToolsClientTests(unittest.TestCase):
         report = client.service_version()
 
         self.assertEqual(report.aktools_current, "0.0.91")
-        self.assertEqual(report.akshare_current, "1.18.78")
         self.assertEqual(urlsplit(transport.urls[0]).path, "/version")
 
 
@@ -161,7 +160,7 @@ class AkToolsCliTests(unittest.TestCase):
             ["aktools: no token required; base URL from default local address (checked on demand)"],
         )
 
-    def test_source_check_reports_supported_aktools_service_version(self) -> None:
+    def test_source_check_reports_current_aktools_service_version(self) -> None:
         output: list[str] = []
 
         result = run_source_command(
@@ -173,9 +172,6 @@ class AkToolsCliTests(unittest.TestCase):
                 {
                     "service_version": lambda self: AkToolsServiceVersion(
                         aktools_current="0.0.91",
-                        aktools_latest="0.0.91",
-                        akshare_current="1.18.78",
-                        akshare_latest="1.18.78",
                     )
                 },
             )(),
@@ -184,35 +180,8 @@ class AkToolsCliTests(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertEqual(
             output,
-            [
-                "aktools: local service version 0.0.91",
-                "aktools: required version > 0.0.81: OK",
-                "aktools: service-reported latest version 0.0.91",
-            ],
+            ["aktools: local service version 0.0.91"],
         )
-
-    def test_source_check_returns_nonzero_for_unsupported_version(self) -> None:
-        output: list[str] = []
-
-        result = run_source_command(
-            ["check", "aktools"],
-            output=output.append,
-            aktools_client_factory=lambda: type(
-                "VersionClient",
-                (),
-                {
-                    "service_version": lambda self: AkToolsServiceVersion(
-                        aktools_current="0.0.81",
-                        aktools_latest=None,
-                        akshare_current=None,
-                        akshare_latest=None,
-                    )
-                },
-            )(),
-        )
-
-        self.assertEqual(result, 1)
-        self.assertEqual(output[1], "aktools: required version > 0.0.81: UPGRADE REQUIRED")
 
 
 if __name__ == "__main__":
