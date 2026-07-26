@@ -67,21 +67,6 @@ from .yfinance import (
     YFinanceRateLimitError,
     YFinanceTransportError,
 )
-from .futu import (
-    DEFAULT_FUTU_LIMITS,
-    DEFAULT_FUTU_OPEND_HOST,
-    DEFAULT_FUTU_OPEND_PORT,
-    FutuApiError,
-    FutuCandle,
-    FutuClient,
-    FutuDependencyError,
-    FutuError,
-    FutuLimits,
-    FutuOpenDEndpoint,
-    FutuOpenDError,
-    FutuRateLimitError,
-    FutuSnapshot,
-)
 
 __all__ = [
     "FREE_PLAN_LIMITS",
@@ -141,17 +126,4 @@ __all__ = [
     "YFinanceError",
     "YFinanceRateLimitError",
     "YFinanceTransportError",
-    "DEFAULT_FUTU_LIMITS",
-    "DEFAULT_FUTU_OPEND_HOST",
-    "DEFAULT_FUTU_OPEND_PORT",
-    "FutuApiError",
-    "FutuCandle",
-    "FutuClient",
-    "FutuDependencyError",
-    "FutuError",
-    "FutuLimits",
-    "FutuOpenDEndpoint",
-    "FutuOpenDError",
-    "FutuRateLimitError",
-    "FutuSnapshot",
 ]

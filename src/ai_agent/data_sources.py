@@ -64,13 +64,6 @@ DATA_SOURCE_CATALOG = (
         False,
         "local 1,000 requests/day guard for personal research",
     ),
-    DataSourceDefinition(
-        "futu",
-        "Futu OpenAPI / FutuOpenD",
-        "FUTU_API_TOKEN",
-        False,
-        "local FutuOpenD TCP gateway; OpenD login and market-data permissions are checked on demand",
-    ),
 )
 
 DATA_SOURCES_BY_NAME = {definition.name: definition for definition in DATA_SOURCE_CATALOG}

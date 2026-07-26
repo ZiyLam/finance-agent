@@ -24,7 +24,6 @@ from .tools import (
     create_biying_market_data_tool,
     create_eodhd_market_data_tool,
     create_echo_tool,
-    create_futu_market_data_tool,
     create_yfinance_market_data_tool,
 )
 
@@ -35,7 +34,6 @@ def _print_source_help(output: Callable[[str], None]) -> None:
     output("  list                   List all catalogued source-maintenance entries; never prints tokens.")
     output("  status                 Show source configuration; never prints tokens or URLs.")
     output("  check aktools          Show the current version reported by the running AkTools service.")
-    output("  check futu             Check whether the configured local FutuOpenD TCP port is reachable.")
     output("  set-token <source>     Prompt securely for a credential or token backup for any source.")
     output("  delete-token <source>  Remove a saved data-source credential after confirmation.")
 
@@ -48,7 +46,6 @@ def run_source_command(
     confirmation_input: Callable[[str], str] = input,
     output: Callable[[str], None] = print,
     aktools_client_factory: Callable[[], Any] | None = None,
-    futu_client_factory: Callable[[], Any] | None = None,
 ) -> int:
     """Maintain local source tokens without ever echoing their values."""
 
@@ -104,36 +101,20 @@ def run_source_command(
         return 0
 
     if command == "check":
-        if sources == ["aktools"]:
-            from .market_data.aktools import AkToolsClient, AkToolsError
-
-            if aktools_client_factory is None:
-                aktools_client_factory = AkToolsClient.from_environment
-            try:
-                version_report = aktools_client_factory().service_version()
-            except (AkToolsError, ValueError) as error:
-                output(f"aktools: version check failed: {error}")
-                return 1
-            output(f"aktools: local service version {version_report.aktools_current}")
-            return 0
-        if sources == ["futu"]:
-            from .market_data.futu import FutuClient, FutuError
-
-            if futu_client_factory is None:
-                futu_client_factory = FutuClient.from_environment
-            try:
-                endpoint = futu_client_factory().check_opend()
-            except (FutuError, ValueError) as error:
-                output(f"futu: OpenD check failed: {error}")
-                return 1
-            output(
-                f"futu: FutuOpenD TCP port reachable at {endpoint.host}:{endpoint.port}; "
-                "login and market-data permissions are checked when data is requested"
-            )
-            return 0
-        else:
+        if sources != ["aktools"]:
             _print_source_help(output)
             return 2
+        from .market_data.aktools import AkToolsClient, AkToolsError
+
+        if aktools_client_factory is None:
+            aktools_client_factory = AkToolsClient.from_environment
+        try:
+            version_report = aktools_client_factory().service_version()
+        except (AkToolsError, ValueError) as error:
+            output(f"aktools: version check failed: {error}")
+            return 1
+        output(f"aktools: local service version {version_report.aktools_current}")
+        return 0
 
     if len(sources) != 1 or (definition := get_data_source(sources[0])) is None:
         _print_source_help(output)
@@ -236,7 +217,6 @@ def main(argv: Sequence[str] | None = None) -> None:
         registered_tools.append(create_biying_market_data_tool(BiyingClient(biying_licence)))
     from .market_data.aktools import AkToolsClient
     from .market_data.baostock import BaoStockClient
-    from .market_data.futu import FutuClient
     from .market_data.yfinance import YFinanceClient
 
     # Construction does not call the network. The tool reports a clear error if
@@ -244,7 +224,6 @@ def main(argv: Sequence[str] | None = None) -> None:
     registered_tools.append(create_aktools_market_data_tool(AkToolsClient.from_environment()))
     registered_tools.append(create_baostock_market_data_tool(BaoStockClient()))
     registered_tools.append(create_yfinance_market_data_tool(YFinanceClient()))
-    registered_tools.append(create_futu_market_data_tool(FutuClient.from_environment()))
     agent = Agent(
         model=EchoModelClient(),
         memory=ConversationMemory(system_prompt, settings.memory_window),

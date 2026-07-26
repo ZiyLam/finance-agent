@@ -162,30 +162,6 @@ yfinance 官方文档说明它是对 Yahoo 公开 API 的开源封装，Yahoo �
 finance-agent source status yfinance
 ```
 
-## Futu OpenAPI / FutuOpenD 数据
-
-`futu_market_data` 经富途官方 Python SDK 连接到由操作者自行启动并登录的本机 FutuOpenD。当前只提供两种只读行情能力：
-
-- `historical_candles`：港股、美股、A 股等市场的日/周/月 K 线；富途代码例如 `HK.00700`、`US.AAPL`、`SH.600519`；
-- `market_snapshot`：最多 20 个富途代码的行情快照。
-
-安装项目依赖后，仍需要自行下载、启动并登录 FutuOpenD；默认 TCP 地址为 `127.0.0.1:11111`，可用下列环境变量调整。`FUTU_API_TOKEN` 是统一数据源维护入口的预留槽位，当前 OpenD 行情适配器不会读取或发送它。
-
-```text
-FUTU_OPEND_HOST=127.0.0.1
-FUTU_OPEND_PORT=11111
-```
-
-```powershell
-finance-agent source status futu
-finance-agent source check futu
-finance-agent source set-token futu
-```
-
-`source check futu` 只检查 TCP 端口是否可连接，不会登录账户；实际查询时才会验证 OpenD 登录状态和你的行情权限。行情是否实时、可查看的档位、历史 K 线时间范围与配额均取决于富途账户与行情卡，工具响应必须按返回时间和权限理解，不能无条件称为实时行情。为避免突发请求，本项目使用每进程最小 1 秒间隔、每天最多 500 次的本地保护；这不是富途官方授权额度，也不替代账户级历史 K 线配额。
-
-交易上下文、账户资料、交易解锁、下单与实时订阅均未配置。详细架构、限制与故障排查见 [FutuOpenD 接入说明](docs/futu-opend-integration.md)，原始资料保存在 [Futu-API-Doc-zh-Python.md](src/Futu-API-Doc-zh-Python.md)。
-
 可选环境变量：
 
 ```text
