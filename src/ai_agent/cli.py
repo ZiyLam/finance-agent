@@ -48,7 +48,7 @@ _LOCAL_SOURCES = {
 
 
 def _print_source_help(output: Callable[[str], None]) -> None:
-    output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|alphavantage|biying|eodhd|aktools|baostock|yfinance]")
+    output("Usage: finance-agent source {status|check|set-token|delete-token} [alltick|alphavantage|biying|eodhd|aktools|baostock|yfinance]")
     output("  status                 Show source configuration; never prints tokens or URLs.")
     output("  check aktools          Show the current version reported by the running AkTools service.")
     output("  set-token <source>     Prompt securely for a credential or token backup for any source.")
@@ -192,7 +192,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     except SecretStoreError as error:
         raise SystemExit(
             "Could not read the saved AllTick token. "
-            "Run 'ai-agent source delete-token alltick' then set it again."
+            "Run 'finance-agent source delete-token alltick' then set it again."
         ) from error
     if alltick_token:
         from .market_data.alltick import AllTickClient
@@ -203,7 +203,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     except SecretStoreError as error:
         raise SystemExit(
             "Could not read the saved Alpha Vantage API key. "
-            "Run 'ai-agent source delete-token alphavantage' then set it again."
+            "Run 'finance-agent source delete-token alphavantage' then set it again."
         ) from error
     if alphavantage_key:
         from .market_data.alphavantage import AlphaVantageClient
@@ -214,7 +214,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     except SecretStoreError as error:
         raise SystemExit(
             "Could not read the saved EODHD API token. "
-            "Run 'ai-agent source delete-token eodhd' then set it again."
+            "Run 'finance-agent source delete-token eodhd' then set it again."
         ) from error
     if eodhd_token:
         from .market_data.eodhd import EODHDClient
@@ -225,7 +225,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     except SecretStoreError as error:
         raise SystemExit(
             "Could not read the saved 必盈 API certificate. "
-            "Run 'ai-agent source delete-token biying' then set it again."
+            "Run 'finance-agent source delete-token biying' then set it again."
         ) from error
     if biying_licence:
         from .market_data.biying import BiyingClient
@@ -245,7 +245,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         memory=ConversationMemory(system_prompt, settings.memory_window),
         tools=ToolRegistry(tuple(registered_tools)),
     )
-    print(f"AI Agent framework ready ({len(skills)} skills loaded). Type 'exit' to quit.")
+    print(f"Finance Agent ready ({len(skills)} skills loaded). Type 'exit' to quit.")
     while True:
         try:
             user_input = input("> ").strip()

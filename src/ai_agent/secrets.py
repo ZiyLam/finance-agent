@@ -94,7 +94,7 @@ def default_secret_store_path() -> Path:
     """Use a user-local data directory outside the repository and its Git tree."""
 
     local_data = Path(getenv("LOCALAPPDATA", r"C:\Users\Default\AppData\Local"))
-    return local_data / "Codex" / "ai-agent" / "tokens.json"
+    return local_data / "Codex" / "finance-agent" / "tokens.json"
 
 
 class TokenStore:

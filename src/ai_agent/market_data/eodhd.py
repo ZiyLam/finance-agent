@@ -200,7 +200,7 @@ class EODHDClient:
     def _default_transport(self, url: str) -> bytes:
         request = Request(
             url,
-            headers={"Accept": "application/json", "User-Agent": "ai-agent-financial-research/0.1"},
+            headers={"Accept": "application/json", "User-Agent": "finance-agent-financial-research/0.1"},
         )
         with urlopen(request, timeout=self._timeout_seconds) as response:
             return response.read()

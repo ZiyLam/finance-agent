@@ -1,4 +1,4 @@
-# AI Agent Framework
+# Finance Agent
 
 一个不绑定模型供应商的 AI Agent 起始框架。当前版本提供可测试的核心闭环：消息记忆、模型客户端抽象、工具注册与执行、Agent 循环，以及可替换的命令行入口。
 
@@ -24,12 +24,12 @@ tests/              # 标准库 unittest 测试
 需要 Python 3.11 或更高版本：
 
 ```powershell
-cd 'G:\Program Files\Codex\ai-agent'
+cd 'G:\Program Files\Codex\finance-agent'
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e .
-ai-agent
+finance-agent
 ```
 
 默认使用 `EchoModelClient`，它仅用于验证框架线路，不会调用外部模型或网络服务。
@@ -55,12 +55,12 @@ ai-agent
 令牌维护入口（推荐，输入不会回显）：
 
 ```powershell
-ai-agent source set-token alltick
-ai-agent source set-token alphavantage
-ai-agent source set-token eodhd
-ai-agent source set-token biying
-ai-agent source status
-ai-agent source delete-token biying
+finance-agent source set-token alltick
+finance-agent source set-token alphavantage
+finance-agent source set-token eodhd
+finance-agent source set-token biying
+finance-agent source status
+finance-agent source delete-token biying
 ```
 
 每个已接入的数据源均保留 `set-token`、`status` 与 `delete-token` 维护入口，包括当前不需要鉴权的 AkTools、BaoStock 和 yfinance。后者的维护项仅用于将来服务变更或操作者自行备忘，当前适配器不会读取或发送其中的值；状态命令会明确标示这一点。
@@ -69,7 +69,7 @@ ai-agent source delete-token biying
 
 ```powershell
 $env:ALLTICK_API_TOKEN = '在此设置你自己的令牌'
-ai-agent
+finance-agent
 ```
 
 设置变量后，CLI 会额外注册 `alltick_market_data` 工具。它支持 `latest_quotes` 与 `historical_candles` 两种只读动作，供真实模型适配器调用；默认 Echo 模型不会发起网络请求。
@@ -78,7 +78,7 @@ ai-agent
 
 内置 `ai_agent.market_data.BiyingClient`，封装了必盈 API 的沪深 A 股股票代码检索和“实时交易（公开数据）”接口。它通过 `biying_market_data` 提供 `find_stocks`（最多 20 条匹配）与 `realtime_quote` 两种只读动作，返回价格、涨跌幅、成交量、动态市盈率、市净率及接口返回的更新时间。
 
-必盈证书同样通过 `ai-agent source set-token biying` 加密保存，或用临时变量 `BIYING_API_LICENCE` 覆盖。默认本地限流为 0.2 秒间隔、每分钟 300 次、每天 100 次；每日上限采用文档中心免费版的保守值，确认你的证书套餐后再调整。
+必盈证书同样通过 `finance-agent source set-token biying` 加密保存，或用临时变量 `BIYING_API_LICENCE` 覆盖。默认本地限流为 0.2 秒间隔、每分钟 300 次、每天 100 次；每日上限采用文档中心免费版的保守值，确认你的证书套餐后再调整。
 
 ## AkTools / AKShare 数据
 
@@ -99,12 +99,12 @@ docker run -p 8080:8080 registry.cn-shanghai.aliyuncs.com/akfamily/aktools:1.8.9
 
 ```powershell
 $env:AKTOOLS_BASE_URL = 'http://127.0.0.1:8080'
-ai-agent source status aktools
-ai-agent source check aktools
-ai-agent
+finance-agent source status aktools
+finance-agent source check aktools
+finance-agent
 ```
 
-Agent 启动不会探测网络，而是始终注册只读的 `aktools_market_data` 工具；所以 AkTools 尚未运行并不会影响 AllTick 或必盈。`ai-agent source check aktools` 只读取并显示运行中服务的当前 AkTools 版本；是否升级由使用者决定。首次调用失败时，工具会提示启动本地服务。当前封装了文档的 `stock_zh_a_hist`：传入 6 位沪深 A 股代码、`YYYYMMDD` 日期区间、`daily`/`weekly`/`monthly` 周期，以及 `qfq`（前复权）或 `hfq`（后复权）。为了不挤占模型上下文，工具最多返回最近 120 根 K 线；完整区间行数会一并标明。
+Agent 启动不会探测网络，而是始终注册只读的 `aktools_market_data` 工具；所以 AkTools 尚未运行并不会影响 AllTick 或必盈。`finance-agent source check aktools` 只读取并显示运行中服务的当前 AkTools 版本；是否升级由使用者决定。首次调用失败时，工具会提示启动本地服务。当前封装了文档的 `stock_zh_a_hist`：传入 6 位沪深 A 股代码、`YYYYMMDD` 日期区间、`daily`/`weekly`/`monthly` 周期，以及 `qfq`（前复权）或 `hfq`（后复权）。为了不挤占模型上下文，工具最多返回最近 120 根 K 线；完整区间行数会一并标明。
 
 ## BaoStock 数据
 
@@ -113,7 +113,7 @@ Agent 启动不会探测网络，而是始终注册只读的 `aktools_market_dat
 BaoStock 公布的限制为同一 IP 每日不超过 50,000 次访问；本项目默认采用每进程 5,000 次/日和 0.1 秒最小间隔的本地保护值，以便为同 IP 的其他研究或手工查询预留余量。可用下列命令确认其无 Token 配置状态：
 
 ```powershell
-ai-agent source status baostock
+finance-agent source status baostock
 ```
 
 ## Alpha Vantage 数据
@@ -123,8 +123,8 @@ ai-agent source status baostock
 密钥通过以下入口加密保存，或以临时环境变量 `ALPHAVANTAGE_API_KEY` 覆盖；它不会被写进项目、`.env.example` 或 Git：
 
 ```powershell
-ai-agent source set-token alphavantage
-ai-agent source status alphavantage
+finance-agent source set-token alphavantage
+finance-agent source status alphavantage
 ```
 
 根据 Alpha Vantage 官方文档，免费服务上限为每天 25 次请求。本项目额外采用每进程每天 25 次、最小 15 秒间隔的本地保护；不要绕过该限制。免费 `GLOBAL_QUOTE` 默认是每日收盘后更新的数据，不能表述为实时或 15 分钟延迟美国行情；后两者需要提供商授权。所有 Alpha Vantage 数据只能用于研究核验，不构成交易指令或收益承诺。
@@ -138,8 +138,8 @@ EODHD 免费计划文档列出每天 20 次 API 调用，且历史数据仅限�
 使用以下命令加密保存或维护凭证：
 
 ```powershell
-ai-agent source set-token eodhd
-ai-agent source status eodhd
+finance-agent source set-token eodhd
+finance-agent source status eodhd
 ```
 
 ## yfinance / Yahoo Finance 数据
@@ -151,7 +151,7 @@ yfinance 官方文档说明它是对 Yahoo 公开 API 的开源封装，Yahoo �
 如需将 yfinance 的时区和 Cookie 缓存保存在指定位置，可设置 `YFINANCE_CACHE_DIR`。当前 Windows 安装建议设为 `G:\Program Files\Python314\yfinance-cache`，避免默认写入用户配置目录。
 
 ```powershell
-ai-agent source status yfinance
+finance-agent source status yfinance
 ```
 
 可选环境变量：

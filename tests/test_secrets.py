@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from ai_agent.cli import run_source_command
-from ai_agent.secrets import TokenStore, resolve_token
+from ai_agent.secrets import TokenStore, default_secret_store_path, resolve_token
 
 
 def reversible_protect(value: bytes) -> bytes:
@@ -37,6 +37,12 @@ class TokenStoreTests(unittest.TestCase):
             store.set_token("alltick", "stored-token")
             with patch.dict("os.environ", {"ALLTICK_API_TOKEN": "temporary-token"}):
                 self.assertEqual(resolve_token("alltick", "ALLTICK_API_TOKEN", store), "temporary-token")
+
+    def test_default_store_uses_finance_agent_name(self) -> None:
+        with patch.dict("os.environ", {"LOCALAPPDATA": "C:\\AgentData"}, clear=True):
+            self.assertEqual(
+                default_secret_store_path(), Path("C:/AgentData/Codex/finance-agent/tokens.json")
+            )
 
     def test_source_command_never_prints_token(self) -> None:
         with TemporaryDirectory() as directory:
