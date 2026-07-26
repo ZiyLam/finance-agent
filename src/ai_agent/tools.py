@@ -144,6 +144,111 @@ def create_alltick_market_data_tool(client: "AllTickClient") -> FunctionTool:
     )
 
 
+def create_alphavantage_market_data_tool(client: "AlphaVantageClient") -> FunctionTool:
+    """Expose bounded Alpha Vantage reads to a model without exposing its API key."""
+
+    from .market_data.alphavantage import AlphaVantageError
+
+    def market_data(arguments: Mapping[str, Any]) -> str:
+        action = arguments.get("action", "daily_candles")
+        if action == "daily_candles":
+            symbol = arguments.get("symbol")
+            if not isinstance(symbol, str):
+                raise ValueError("'symbol' must be a global ticker string")
+            limit = arguments.get("limit", 100)
+            if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 100:
+                raise ValueError("'limit' must be an integer between 1 and 100")
+            try:
+                candles = client.daily_candles(symbol)
+            except AlphaVantageError as error:
+                return f"ERROR: {error}"
+            return json.dumps(
+                {
+                    "source": "Alpha Vantage",
+                    "symbol": symbol,
+                    "series": "TIME_SERIES_DAILY (raw, compact)",
+                    "returned_rows": len(candles),
+                    "shown_rows": min(len(candles), limit),
+                    "candles": [
+                        {
+                            "date": candle.date,
+                            "open": str(candle.open_price),
+                            "close": str(candle.close_price),
+                            "high": str(candle.high_price),
+                            "low": str(candle.low_price),
+                            "volume": str(candle.volume),
+                        }
+                        for candle in candles[-limit:]
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        if action == "global_quote":
+            symbol = arguments.get("symbol")
+            if not isinstance(symbol, str):
+                raise ValueError("'symbol' must be a global ticker string")
+            try:
+                quote = client.global_quote(symbol)
+            except AlphaVantageError as error:
+                return f"ERROR: {error}"
+            return json.dumps(
+                {
+                    "source": "Alpha Vantage",
+                    "symbol": quote.symbol,
+                    "latest_trading_day": quote.latest_trading_day,
+                    "price": str(quote.price),
+                    "change": str(quote.change),
+                    "change_percent": str(quote.change_percent),
+                    "open": str(quote.open_price),
+                    "high": str(quote.high_price),
+                    "low": str(quote.low_price),
+                    "previous_close": str(quote.previous_close),
+                    "volume": str(quote.volume),
+                    "data_freshness": "end-of-day by default; real-time or delayed US data requires provider entitlement",
+                },
+                ensure_ascii=False,
+            )
+        if action == "symbol_search":
+            keywords = arguments.get("keywords")
+            if not isinstance(keywords, str):
+                raise ValueError("'keywords' must be a search string")
+            limit = arguments.get("limit", 10)
+            if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 20:
+                raise ValueError("'limit' must be an integer between 1 and 20")
+            try:
+                matches = client.symbol_search(keywords, limit)
+            except AlphaVantageError as error:
+                return f"ERROR: {error}"
+            return json.dumps(
+                {
+                    "source": "Alpha Vantage",
+                    "matches": [
+                        {
+                            "symbol": match.symbol,
+                            "name": match.name,
+                            "type": match.asset_type,
+                            "region": match.region,
+                            "currency": match.currency,
+                            "match_score": str(match.match_score),
+                        }
+                        for match in matches
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        raise ValueError("'action' must be 'daily_candles', 'global_quote', or 'symbol_search'")
+
+    return FunctionTool(
+        name="alphavantage_market_data",
+        description=(
+            "Reads Alpha Vantage global stock data. Inputs: action ('daily_candles', 'global_quote', "
+            "or 'symbol_search'), symbol or keywords, and optional limit. Daily candles are raw "
+            "compact data (up to 100 rows); free quotes are normally end-of-day. Never trades."
+        ),
+        handler=market_data,
+    )
+
+
 def create_biying_market_data_tool(client: "BiyingClient") -> FunctionTool:
     """Expose bounded 必盈 A-share reads without exposing the certificate."""
 

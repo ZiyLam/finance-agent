@@ -18,6 +18,7 @@ from .tools import (
     ToolRegistry,
     create_aktools_market_data_tool,
     create_alltick_market_data_tool,
+    create_alphavantage_market_data_tool,
     create_baostock_market_data_tool,
     create_biying_market_data_tool,
     create_echo_tool,
@@ -27,6 +28,7 @@ from .tools import (
 
 _TOKEN_SOURCES = {
     "alltick": "ALLTICK_API_TOKEN",
+    "alphavantage": "ALPHAVANTAGE_API_KEY",
     "biying": "BIYING_API_LICENCE",
 }
 
@@ -38,11 +40,12 @@ _LOCAL_SOURCES = {
 
 
 def _print_source_help(output: Callable[[str], None]) -> None:
-    output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|biying|aktools|baostock|yfinance]")
+    output("Usage: ai-agent source {status|check|set-token|delete-token} [alltick|alphavantage|biying|aktools|baostock|yfinance]")
     output("  status                 Show source configuration; never prints tokens or URLs.")
     output("  check aktools          Show the current version reported by the running AkTools service.")
-    output("  set-token <source>     Prompt securely for an AllTick or 必盈 API credential.")
-    output("  delete-token <source>  Remove a saved AllTick or 必盈 credential after confirmation.")
+    output("  set-token <source>     Prompt securely for an AllTick, Alpha Vantage, or 必盈 API credential.")
+    output("  delete-token <source>  Remove a saved data-source credential after confirmation.")
+    output("  alphavantage           Free keys are locally guarded at 25 requests/day and 15-second spacing.")
     output("  aktools                Needs no token; configure its local URL with AKTOOLS_BASE_URL.")
     output("  baostock               Needs no token; local requests stay below its 50,000/IP/day provider limit.")
     output("  yfinance               Needs no token; Yahoo Finance data is limited to personal research use.")
@@ -178,6 +181,17 @@ def main(argv: Sequence[str] | None = None) -> None:
         from .market_data.alltick import AllTickClient
 
         registered_tools.append(create_alltick_market_data_tool(AllTickClient(alltick_token)))
+    try:
+        alphavantage_key = resolve_token("alphavantage", "ALPHAVANTAGE_API_KEY")
+    except SecretStoreError as error:
+        raise SystemExit(
+            "Could not read the saved Alpha Vantage API key. "
+            "Run 'ai-agent source delete-token alphavantage' then set it again."
+        ) from error
+    if alphavantage_key:
+        from .market_data.alphavantage import AlphaVantageClient
+
+        registered_tools.append(create_alphavantage_market_data_tool(AlphaVantageClient(alphavantage_key)))
     try:
         biying_licence = resolve_token("biying", "BIYING_API_LICENCE")
     except SecretStoreError as error:

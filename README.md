@@ -56,6 +56,7 @@ ai-agent
 
 ```powershell
 ai-agent source set-token alltick
+ai-agent source set-token alphavantage
 ai-agent source set-token biying
 ai-agent source status
 ai-agent source delete-token biying
@@ -111,6 +112,19 @@ BaoStock 公布的限制为同一 IP 每日不超过 50,000 次访问；本项�
 ```powershell
 ai-agent source status baostock
 ```
+
+## Alpha Vantage 数据
+
+项目内置 `alphavantage_market_data`，使用 Alpha Vantage 官方 HTTP API 提供三种只读操作：`daily_candles`（全球股票原始日线 OHLCV）、`global_quote`（单标的最新报价）与 `symbol_search`（代码/公司搜索）。日线固定使用官方免费密钥可用的 `TIME_SERIES_DAILY` + `outputsize=compact`，因此单次最多返回最近 100 根，不包含复权价格、分红或拆股事件；如需这些数据，应改用具备相应权限的来源并标注口径。
+
+密钥通过以下入口加密保存，或以临时环境变量 `ALPHAVANTAGE_API_KEY` 覆盖；它不会被写进项目、`.env.example` 或 Git：
+
+```powershell
+ai-agent source set-token alphavantage
+ai-agent source status alphavantage
+```
+
+根据 Alpha Vantage 官方文档，免费服务上限为每天 25 次请求。本项目额外采用每进程每天 25 次、最小 15 秒间隔的本地保护；不要绕过该限制。免费 `GLOBAL_QUOTE` 默认是每日收盘后更新的数据，不能表述为实时或 15 分钟延迟美国行情；后两者需要提供商授权。所有 Alpha Vantage 数据只能用于研究核验，不构成交易指令或收益承诺。
 
 ## yfinance / Yahoo Finance 数据
 
