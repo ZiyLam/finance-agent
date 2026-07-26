@@ -10,20 +10,25 @@ from os import getenv
 class AgentSettings:
     """Runtime settings shared by the application composition layer."""
 
-    provider: str = "echo"
-    model: str = "local-echo"
+    provider: str = "codex"
+    model: str = ""
     system_prompt: str = "You are a helpful AI agent."
     memory_window: int = 20
+    codex_timeout_seconds: float = 120.0
 
     @classmethod
     def from_environment(cls) -> "AgentSettings":
         memory_window = int(getenv("AGENT_MEMORY_WINDOW", "20"))
         if memory_window < 1:
             raise ValueError("AGENT_MEMORY_WINDOW must be at least 1")
+        codex_timeout_seconds = float(getenv("AGENT_CODEX_TIMEOUT_SECONDS", "120"))
+        if codex_timeout_seconds <= 0:
+            raise ValueError("AGENT_CODEX_TIMEOUT_SECONDS must be positive")
 
         return cls(
-            provider=getenv("AGENT_PROVIDER", "echo"),
-            model=getenv("AGENT_MODEL", "local-echo"),
+            provider=getenv("AGENT_PROVIDER", "codex").strip().lower(),
+            model=getenv("AGENT_MODEL", ""),
             system_prompt=getenv("AGENT_SYSTEM_PROMPT", "You are a helpful AI agent."),
             memory_window=memory_window,
+            codex_timeout_seconds=codex_timeout_seconds,
         )

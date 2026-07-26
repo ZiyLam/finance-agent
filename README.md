@@ -34,7 +34,24 @@ python -m pip install -e .
 .\resources\finance-agent.ps1
 ```
 
-默认使用 `EchoModelClient`，它仅用于验证框架线路，不会调用外部模型或网络服务。
+## 自测模型：本机 Codex CLI
+
+当前默认模型提供方为 `codex`。它通过本机已登录的 Codex CLI 调用该 CLI 当前配置的模型，不需要把 Codex 登录信息或 API Key 写入项目。每轮 Agent 调用均使用临时 `codex exec` 会话、只读沙箱和“永不审批”策略；它只能通过结构化输出请求本项目已注册的数据工具。
+
+确保本机已完成 Codex 登录后，直接运行：
+
+```powershell
+.\resources\finance-agent.ps1
+```
+
+若想在本次自测中指定 CLI 支持的模型标识，可设置 `AGENT_MODEL`；留空则遵循本机 Codex CLI 的默认选择。可用 `AGENT_CODEX_TIMEOUT_SECONDS` 调整单轮等待上限，默认 120 秒。若要完全离线地检查 Agent 框架，可显式切换回回显模型：
+
+```powershell
+$env:AGENT_PROVIDER = 'echo'
+.\resources\finance-agent.ps1
+```
+
+Codex CLI 适配器仅用于当前自测阶段。正式部署建议改为独立、可审计的模型 API 提供方，而不是复用交互式 Codex 登录态。
 
 启动时，CLI 会自动加载项目根目录 `skills/*/SKILL.md` 中经审阅的 Skill，并把它们加入系统提示词。当前已内置金融分析 Skill；它要求模型标注数据时点和证据、输出风险情景，且不执行交易或提供保证收益的个性化荐股。
 
@@ -167,8 +184,9 @@ finance-agent source status yfinance
 可选环境变量：
 
 ```text
-AGENT_PROVIDER=echo
-AGENT_MODEL=local-echo
+AGENT_PROVIDER=codex
+AGENT_MODEL=
+AGENT_CODEX_TIMEOUT_SECONDS=120
 AGENT_SYSTEM_PROMPT=You are a helpful AI agent.
 AGENT_MEMORY_WINDOW=20
 AKTOOLS_BASE_URL=http://127.0.0.1:8080

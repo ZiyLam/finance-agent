@@ -12,6 +12,7 @@ from .agent import Agent
 from .config import AgentSettings
 from .data_sources import DATA_SOURCE_CATALOG, data_source_names, get_data_source
 from .memory import ConversationMemory
+from .providers.codex_cli import CodexCliError, CodexCliModelClient
 from .providers.echo import EchoModelClient
 from .secrets import SecretStoreError, TokenStore, resolve_token
 from .skills import compose_system_prompt, load_skills
@@ -161,10 +162,16 @@ def main(argv: Sequence[str] | None = None) -> None:
         raise SystemExit(2)
 
     settings = AgentSettings.from_environment()
-    if settings.provider != "echo":
+    if settings.provider == "echo":
+        model = EchoModelClient()
+    elif settings.provider == "codex":
+        model = CodexCliModelClient(
+            model=settings.model,
+            timeout_seconds=settings.codex_timeout_seconds,
+        )
+    else:
         raise SystemExit(
-            f"Provider '{settings.provider}' is not configured yet. "
-            "Add an adapter under ai_agent.providers first."
+            f"Provider '{settings.provider}' is not configured. Use 'codex' or 'echo'."
         )
 
     project_root = Path(__file__).resolve().parents[2]
@@ -225,7 +232,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     registered_tools.append(create_baostock_market_data_tool(BaoStockClient()))
     registered_tools.append(create_yfinance_market_data_tool(YFinanceClient()))
     agent = Agent(
-        model=EchoModelClient(),
+        model=model,
         memory=ConversationMemory(system_prompt, settings.memory_window),
         tools=ToolRegistry(tuple(registered_tools)),
     )
@@ -239,7 +246,10 @@ def main(argv: Sequence[str] | None = None) -> None:
         if user_input.lower() in {"exit", "quit"}:
             return
         if user_input:
-            print(agent.run(user_input).text)
+            try:
+                print(agent.run(user_input).text)
+            except CodexCliError as error:
+                print(f"Codex model request failed: {error}")
 
 
 if __name__ == "__main__":
