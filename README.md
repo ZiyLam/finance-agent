@@ -53,6 +53,20 @@ $env:AGENT_PROVIDER = 'echo'
 
 Codex CLI 适配器仅用于当前自测阶段。正式部署建议改为独立、可审计的模型 API 提供方，而不是复用交互式 Codex 登录态。
 
+## 可切换模型：百度智能云千帆
+
+已接入百度智能云千帆的 OpenAI 兼容聊天接口。默认模型仍为 `codex`；只有显式设置 `AGENT_PROVIDER=qianfan` 才会使用千帆。凭证通过 Windows DPAPI 保存在当前 Windows 用户的本机加密存储中，项目、Git 与示例环境文件中均不保存真实 API Key。
+
+```powershell
+finance-agent source set-token qianfan
+$env:AGENT_PROVIDER = 'qianfan'
+# 可按千帆账号已授权的模型调整；未设置时为 ernie-4.5-turbo-32k
+$env:AGENT_MODEL = 'ernie-4.5-turbo-32k'
+.\resources\finance-agent.ps1
+```
+
+`AGENT_QIANFAN_TIMEOUT_SECONDS` 可调整单轮请求超时，默认 60 秒。若当前千帆账号未获默认模型授权，请设置 `AGENT_MODEL` 为账号已获授权的模型标识。千帆适配器仅能请求本项目已注册的只读本地数据工具；它不会执行交易、下单或输出收益保证。
+
 启动时，CLI 会自动加载项目根目录 `skills/*/SKILL.md` 中经审阅的 Skill，并把它们加入系统提示词。当前已内置金融分析 Skill；它要求模型标注数据时点和证据、输出风险情景，且不执行交易或提供保证收益的个性化荐股。
 
 ## 接入真实模型

@@ -14,6 +14,7 @@ from .data_sources import DATA_SOURCE_CATALOG, data_source_names, get_data_sourc
 from .memory import ConversationMemory
 from .providers.codex_cli import CodexCliError, CodexCliModelClient
 from .providers.echo import EchoModelClient
+from .providers.qianfan import QianfanError, QianfanModelClient
 from .secrets import SecretStoreError, TokenStore, resolve_token
 from .skills import compose_system_prompt, load_skills
 from .tools import (
@@ -169,9 +170,27 @@ def main(argv: Sequence[str] | None = None) -> None:
             model=settings.model,
             timeout_seconds=settings.codex_timeout_seconds,
         )
+    elif settings.provider == "qianfan":
+        try:
+            qianfan_api_key = resolve_token("qianfan", "QIANFAN_API_KEY")
+        except SecretStoreError as error:
+            raise SystemExit(
+                "Could not read the saved Qianfan API key. "
+                "Run 'finance-agent source delete-token qianfan' then set it again."
+            ) from error
+        if not qianfan_api_key:
+            raise SystemExit(
+                "Qianfan API key is not configured. Run 'finance-agent source set-token qianfan' "
+                "or set QIANFAN_API_KEY for this process."
+            )
+        model = QianfanModelClient(
+            qianfan_api_key,
+            model=settings.model,
+            timeout_seconds=settings.qianfan_timeout_seconds,
+        )
     else:
         raise SystemExit(
-            f"Provider '{settings.provider}' is not configured. Use 'codex' or 'echo'."
+            f"Provider '{settings.provider}' is not configured. Use 'codex', 'qianfan', or 'echo'."
         )
 
     project_root = Path(__file__).resolve().parents[2]
@@ -250,6 +269,8 @@ def main(argv: Sequence[str] | None = None) -> None:
                 print(agent.run(user_input).text)
             except CodexCliError as error:
                 print(f"Codex model request failed: {error}")
+            except QianfanError as error:
+                print(f"Qianfan model request failed: {error}")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,16 @@ class DataSourceCatalogTests(unittest.TestCase):
         )
         self.assertEqual(
             set(data_source_names()),
-            {"alltick", "alphavantage", "biying", "eodhd", "aktools", "baostock", "yfinance"},
+            {
+                "alltick",
+                "alphavantage",
+                "biying",
+                "eodhd",
+                "qianfan",
+                "aktools",
+                "baostock",
+                "yfinance",
+            },
         )
 
     def test_source_list_is_generated_from_the_catalog(self) -> None:

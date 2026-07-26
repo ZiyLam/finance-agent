@@ -115,6 +115,14 @@ class AgentSettingsTests(unittest.TestCase):
             echo_settings = AgentSettings.from_environment()
         self.assertEqual((echo_settings.provider, echo_settings.model), ("echo", "local-echo"))
 
+    def test_qianfan_uses_its_default_model_and_timeout(self) -> None:
+        with patch.dict("os.environ", {"AGENT_PROVIDER": "qianfan"}, clear=True):
+            settings = AgentSettings.from_environment()
+        self.assertEqual(
+            (settings.provider, settings.model, settings.qianfan_timeout_seconds),
+            ("qianfan", "ernie-4.5-turbo-32k", 60),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
