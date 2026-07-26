@@ -92,12 +92,15 @@ class YFinanceClientTests(unittest.TestCase):
         client = YFinanceClient(
             limits=YFinanceLimits(0, 1_000),
             api=api,
-            cache_directory="G:/Program Files/Python314/yfinance-cache",
+            cache_directory="G:/Program Files/Codex/finance-agent/resources/cache/yfinance",
         )
 
         client.historical_candles("AAPL", start_date="2024-01-02", end_date="2024-01-03")
 
-        self.assertEqual(api.cache_locations, ["G:/Program Files/Python314/yfinance-cache"])
+        self.assertEqual(
+            api.cache_locations,
+            ["G:/Program Files/Codex/finance-agent/resources/cache/yfinance"],
+        )
 
     def test_symbols_dates_and_intervals_are_validated_before_request(self) -> None:
         api = FakeYFinanceApi(FakeHistory([(datetime(2024, 1, 2), ROW)]))

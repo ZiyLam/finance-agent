@@ -16,6 +16,7 @@ src/ai_agent/
   cli.py            # 本地交互入口
 skills/
   financial-investment-analyst/  # 金融分析、风险提醒与研究性观点 Skill
+resources/                       # 项目本地数据源运行环境与缓存（不提交 Git）
 tests/              # 标准库 unittest 测试
 ```
 
@@ -25,11 +26,12 @@ tests/              # 标准库 unittest 测试
 
 ```powershell
 cd 'G:\Program Files\Codex\finance-agent'
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+& 'G:\Program Files\Python314\python.exe' -m venv 'resources\data-source-runtime'
+.\resources\data-source-runtime\Scripts\Activate.ps1
+$env:PIP_CACHE_DIR = 'G:\Program Files\Codex\finance-agent\resources\cache\pip'
 python -m pip install --upgrade pip
 python -m pip install -e .
-finance-agent
+.\resources\finance-agent.ps1
 ```
 
 默认使用 `EchoModelClient`，它仅用于验证框架线路，不会调用外部模型或网络服务。
@@ -156,7 +158,7 @@ finance-agent source status eodhd
 
 yfinance 官方文档说明它是对 Yahoo 公开 API 的开源封装，Yahoo 数据仅限个人研究与教育用途。该数据源只能用于核验历史价格、成交量和调整口径，不能视为实时行情、交易所原始数据或可再分发的数据。为避免触发未公开的 Yahoo 限制，项目默认设置每进程 1,000 次/日与 0.5 秒最小间隔的本地保护值。
 
-如需将 yfinance 的时区和 Cookie 缓存保存在指定位置，可设置 `YFINANCE_CACHE_DIR`。当前 Windows 安装建议设为 `G:\Program Files\Python314\yfinance-cache`，避免默认写入用户配置目录。
+如需将 yfinance 的时区和 Cookie 缓存保存在指定位置，可设置 `YFINANCE_CACHE_DIR`。当前 Windows 安装建议设为 `G:\Program Files\Codex\finance-agent\resources\cache\yfinance`，避免默认写入用户配置目录。
 
 ```powershell
 finance-agent source status yfinance

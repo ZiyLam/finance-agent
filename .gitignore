@@ -11,6 +11,8 @@ dist/
 # Local environments and configuration
 .venv/
 .env
+resources/data-source-runtime/
+resources/cache/
 
 # Editor and operating-system files
 .vscode/
