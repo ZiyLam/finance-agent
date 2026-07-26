@@ -348,3 +348,72 @@ def create_baostock_market_data_tool(client: "BaoStockClient") -> FunctionTool:
         ),
         handler=market_data,
     )
+
+
+def create_yfinance_market_data_tool(client: "YFinanceClient") -> FunctionTool:
+    """Expose bounded Yahoo Finance historical OHLCV reads to a model."""
+
+    from .market_data.yfinance import YFinanceError
+
+    def market_data(arguments: Mapping[str, Any]) -> str:
+        symbol = arguments.get("symbol")
+        start_date = arguments.get("start_date")
+        end_date = arguments.get("end_date")
+        if not all(isinstance(value, str) for value in (symbol, start_date, end_date)):
+            raise ValueError("'symbol', 'start_date', and 'end_date' must be strings")
+        interval = arguments.get("interval", "1d")
+        auto_adjust = arguments.get("auto_adjust", True)
+        if not isinstance(interval, str):
+            raise ValueError("'interval' must be a string")
+        if not isinstance(auto_adjust, bool):
+            raise ValueError("'auto_adjust' must be a boolean")
+        limit = arguments.get("limit", 120)
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 120:
+            raise ValueError("'limit' must be an integer between 1 and 120")
+        try:
+            candles = client.historical_candles(
+                symbol,
+                start_date=start_date,
+                end_date=end_date,
+                interval=interval,
+                auto_adjust=auto_adjust,
+            )
+        except YFinanceError as error:
+            return f"ERROR: {error}"
+        return json.dumps(
+            {
+                "source": "yfinance (Yahoo Finance)",
+                "symbol": symbol,
+                "interval": interval,
+                "auto_adjust": auto_adjust,
+                "end_date_exclusive": end_date,
+                "returned_rows": len(candles),
+                "shown_rows": min(len(candles), limit),
+                "candles": [
+                    {
+                        "date": candle.date,
+                        "open": str(candle.open_price),
+                        "close": str(candle.close_price),
+                        "high": str(candle.high_price),
+                        "low": str(candle.low_price),
+                        "adjusted_close": str(candle.adjusted_close)
+                        if candle.adjusted_close is not None
+                        else None,
+                        "volume": str(candle.volume) if candle.volume is not None else None,
+                    }
+                    for candle in candles[-limit:]
+                ],
+            },
+            ensure_ascii=False,
+        )
+
+    return FunctionTool(
+        name="yfinance_market_data",
+        description=(
+            "Reads Yahoo Finance historical OHLCV through yfinance for one Yahoo symbol, such as "
+            "AAPL, 0700.HK, 600000.SS, ^GSPC, or BTC-USD. Inputs: symbol, start_date/end_date "
+            "(YYYY-MM-DD; end is exclusive), interval ('1d', '1wk', '1mo'), auto_adjust, and "
+            "optional limit (1-120). Personal research use only; never trades."
+        ),
+        handler=market_data,
+    )

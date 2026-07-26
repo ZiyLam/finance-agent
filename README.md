@@ -112,6 +112,18 @@ BaoStock 公布的限制为同一 IP 每日不超过 50,000 次访问；本项�
 ai-agent source status baostock
 ```
 
+## yfinance / Yahoo Finance 数据
+
+项目依赖官方 `yfinance` Python 包，并通过 `yfinance_market_data` 提供单标的日/周/月历史 OHLCV 数据。它不需要 Token；Yahoo 代码示例包括 `AAPL`、`0700.HK`、`600000.SS`、`^GSPC` 和 `BTC-USD`。输入 `start_date` 与 `end_date` 采用 `YYYY-MM-DD`，其中 yfinance 遵循 Yahoo 的约定：`end_date` 为排他上界；要包含某日的日线时，应传入下一日作为 `end_date`。
+
+yfinance 官方文档说明它是对 Yahoo 公开 API 的开源封装，Yahoo 数据仅限个人研究与教育用途。该数据源只能用于核验历史价格、成交量和调整口径，不能视为实时行情、交易所原始数据或可再分发的数据。为避免触发未公开的 Yahoo 限制，项目默认设置每进程 1,000 次/日与 0.5 秒最小间隔的本地保护值。
+
+如需将 yfinance 的时区和 Cookie 缓存保存在指定位置，可设置 `YFINANCE_CACHE_DIR`。当前 Windows 安装建议设为 `G:\Program Files\Python314\yfinance-cache`，避免默认写入用户配置目录。
+
+```powershell
+ai-agent source status yfinance
+```
+
 可选环境变量：
 
 ```text

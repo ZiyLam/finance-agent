@@ -32,6 +32,16 @@ from .baostock import (
     BaoStockRateLimitError,
     BaoStockSessionError,
 )
+from .yfinance import (
+    DEFAULT_YFINANCE_LIMITS,
+    YFinanceApiError,
+    YFinanceCandle,
+    YFinanceClient,
+    YFinanceDependencyError,
+    YFinanceError,
+    YFinanceRateLimitError,
+    YFinanceTransportError,
+)
 
 __all__ = [
     "FREE_PLAN_LIMITS",
@@ -62,4 +72,12 @@ __all__ = [
     "BaoStockError",
     "BaoStockRateLimitError",
     "BaoStockSessionError",
+    "DEFAULT_YFINANCE_LIMITS",
+    "YFinanceApiError",
+    "YFinanceCandle",
+    "YFinanceClient",
+    "YFinanceDependencyError",
+    "YFinanceError",
+    "YFinanceRateLimitError",
+    "YFinanceTransportError",
 ]

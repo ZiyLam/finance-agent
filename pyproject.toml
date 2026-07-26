@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Your team" }]
-dependencies = ["baostock>=0.9.3,<1.0"]
+dependencies = ["baostock>=0.9.3,<1.0", "yfinance>=1.5.2,<2.0"]
 
 [project.scripts]
 ai-agent = "ai_agent.cli:main"
