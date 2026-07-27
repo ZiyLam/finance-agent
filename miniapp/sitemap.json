@@ -1,0 +1,4 @@
+{
+  "desc": "Finance research mini-program sitemap",
+  "rules": [{ "action": "allow", "page": "*" }]
+}

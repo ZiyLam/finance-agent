@@ -44,6 +44,19 @@ python -m pip install -e .
 .\resources\finance-agent.ps1
 ```
 
+## 微信小程序后端（开发版）
+
+项目现包含 `miniapp/` 原生微信小程序客户端和 `src/ai_agent/api/` 的 FastAPI 服务边界。小程序只负责微信登录、对话、澄清和报告展示；模型、行情源与全部凭据只可在服务端使用。
+
+```powershell
+$env:AGENT_SESSION_SECRET = '至少 32 个字符的随机服务端密钥'
+$env:WECHAT_APP_ID = '你的微信小程序 AppID'
+$env:WECHAT_APP_SECRET = '只存放在服务端的 AppSecret'
+python -m ai_agent.api.server
+```
+
+当前 API 的存储、队列、缓存与限流实现仅适用于单进程开发，不能直接用于公网或多实例部署。生产替换清单、接口契约和微信联调前置条件见 [微信小程序后端接入说明](docs/mini-program-backend.md)。
+
 若想在本次自测中指定 CLI 支持的模型标识，可设置 `AGENT_MODEL`；留空则遵循本机 Codex CLI 的默认选择。可用 `AGENT_CODEX_TIMEOUT_SECONDS` 调整单轮等待上限，默认 120 秒。若要完全离线地检查 Agent 框架，可显式切换回回显模型：
 
 ```powershell

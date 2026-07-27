@@ -1,0 +1,35 @@
+<view wx:if="{{loading}}" class="card">正在读取研究报告…</view>
+<view wx:elif="{{error}}" class="card error">{{error}}</view>
+<block wx:elif="{{report}}">
+  <view class="card">
+    <view class="title">{{report.scope.symbol}} · {{report.scope.market}}</view>
+    <view class="meta">区间：{{report.scope.start_date}} 至 {{report.scope.end_date}}</view>
+    <view class="meta">信心：{{report.confidence}}</view>
+  </view>
+
+  <view class="card">
+    <view class="heading">结论摘要</view>
+    <view>{{report.summary}}</view>
+  </view>
+
+  <view wx:if="{{report.model_narrative}}" class="card">
+    <view class="heading">模型研究摘要（{{report.narration_provider}}）</view>
+    <view>{{report.model_narrative}}</view>
+  </view>
+
+  <view class="card">
+    <view class="heading">市场观察</view>
+    <view wx:for="{{report.market_observations}}" wx:key="evidence_ref" class="observation">
+      <view>{{item.source}} · {{item.first_date}} 至 {{item.last_date}}</view>
+      <view class="meta">样本 {{item.sample_size}} 条；区间收益 {{item.period_return_percent}}%</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="heading">风险与限制</view>
+    <view wx:for="{{report.risk_flags}}" wx:key="risk_id" class="risk">{{item.risk_id}}：{{item.trigger}}</view>
+    <view wx:for="{{report.limitations}}" wx:key="index" class="meta">- {{item}}</view>
+  </view>
+
+  <view class="card disclaimer">{{report.disclaimer}}</view>
+</block>

@@ -24,6 +24,7 @@ from .research_planning import (
     catalog_snapshot,
 )
 from .research_report import SecurityResearchReportBuilder
+from .runtime import build_market_data_tool_registry
 from .secrets import SecretStoreError, TokenStore, resolve_token
 from .skills import compose_system_prompt, load_skills
 from .tools import (
@@ -296,62 +297,13 @@ def run_report_command(
 
 def _build_registered_tools(*, include_echo: bool = True) -> ToolRegistry:
     """Build read-only local tools without constructing an LLM client."""
-
-    registered_tools = [create_echo_tool()] if include_echo else []
     try:
-        alltick_token = resolve_token("alltick", "ALLTICK_API_TOKEN")
-    except SecretStoreError as error:
+        return build_market_data_tool_registry(include_echo=include_echo)
+    except RuntimeError as error:
         raise SystemExit(
-            "Could not read the saved AllTick token. "
-            "Run 'finance-agent source delete-token alltick' then set it again."
+            f"Could not load a saved data-source credential: {error}. "
+            "Delete and set that credential again."
         ) from error
-    if alltick_token:
-        from .market_data.alltick import AllTickClient
-
-        registered_tools.append(create_alltick_market_data_tool(AllTickClient(alltick_token)))
-    try:
-        alphavantage_key = resolve_token("alphavantage", "ALPHAVANTAGE_API_KEY")
-    except SecretStoreError as error:
-        raise SystemExit(
-            "Could not read the saved Alpha Vantage API key. "
-            "Run 'finance-agent source delete-token alphavantage' then set it again."
-        ) from error
-    if alphavantage_key:
-        from .market_data.alphavantage import AlphaVantageClient
-
-        registered_tools.append(create_alphavantage_market_data_tool(AlphaVantageClient(alphavantage_key)))
-    try:
-        eodhd_token = resolve_token("eodhd", "EODHD_API_TOKEN")
-    except SecretStoreError as error:
-        raise SystemExit(
-            "Could not read the saved EODHD API token. "
-            "Run 'finance-agent source delete-token eodhd' then set it again."
-        ) from error
-    if eodhd_token:
-        from .market_data.eodhd import EODHDClient
-
-        registered_tools.append(create_eodhd_market_data_tool(EODHDClient(eodhd_token)))
-    try:
-        biying_licence = resolve_token("biying", "BIYING_API_LICENCE")
-    except SecretStoreError as error:
-        raise SystemExit(
-            "Could not read the saved API certificate. "
-            "Run 'finance-agent source delete-token biying' then set it again."
-        ) from error
-    if biying_licence:
-        from .market_data.biying import BiyingClient
-
-        registered_tools.append(create_biying_market_data_tool(BiyingClient(biying_licence)))
-    from .market_data.aktools import AkToolsClient
-    from .market_data.baostock import BaoStockClient
-    from .market_data.yfinance import YFinanceClient
-
-    # Construction does not call the network. The tool reports a clear error if
-    # the optional locally managed service is not running when it is invoked.
-    registered_tools.append(create_aktools_market_data_tool(AkToolsClient.from_environment()))
-    registered_tools.append(create_baostock_market_data_tool(BaoStockClient()))
-    registered_tools.append(create_yfinance_market_data_tool(YFinanceClient()))
-    return ToolRegistry(tuple(registered_tools))
 
 
 def main(argv: Sequence[str] | None = None) -> None:

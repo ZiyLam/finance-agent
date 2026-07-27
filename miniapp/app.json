@@ -1,0 +1,28 @@
+{
+  "pages": [
+    "pages/research/index",
+    "pages/report/index",
+    "pages/profile/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "投研助手",
+    "navigationBarBackgroundColor": "#0f172a",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f8fafc"
+  },
+  "tabBar": {
+    "color": "#64748b",
+    "selectedColor": "#0f766e",
+    "list": [
+      {
+        "pagePath": "pages/research/index",
+        "text": "研究"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

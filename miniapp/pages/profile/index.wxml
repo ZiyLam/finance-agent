@@ -1,0 +1,8 @@
+<view class="card">
+  <view class="title">研究使用说明</view>
+  <view class="content">{{disclaimer}}</view>
+</view>
+<view class="card">
+  <view class="title">数据与隐私</view>
+  <view class="content">行情来源、数据时效和报告限制会在每份研究结果中显示。平台凭据仅保存在服务端。</view>
+</view>

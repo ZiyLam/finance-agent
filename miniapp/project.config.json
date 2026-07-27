@@ -1,0 +1,15 @@
+{
+  "miniprogramRoot": "./",
+  "projectname": "finance-agent-miniapp",
+  "description": "Read-only financial research mini-program client",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.8.8"
+}

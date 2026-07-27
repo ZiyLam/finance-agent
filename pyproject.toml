@@ -10,10 +10,16 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Your team" }]
-dependencies = ["baostock>=0.9.3,<1.0", "yfinance>=1.5.2,<2.0"]
+dependencies = [
+  "baostock>=0.9.3,<1.0",
+  "fastapi>=0.115,<1.0",
+  "uvicorn>=0.30,<1.0",
+  "yfinance>=1.5.2,<2.0",
+]
 
 [project.scripts]
 finance-agent = "ai_agent.cli:main"
+finance-agent-api = "ai_agent.api.server:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="card intro">
+    <view class="title">证据驱动的投研助手</view>
+    <view class="caption">仅供研究与教育，不构成个性化投资建议或交易指令。</view>
+  </view>
+
+  <view wx:for="{{messages}}" wx:key="index" class="message {{item.role}}">
+    <text>{{item.content}}</text>
+  </view>
+
+  <view wx:if="{{clarifications.length}}" class="card clarification">
+    <view class="title">需要确认</view>
+    <view wx:for="{{clarifications}}" wx:key="field" class="clarification-item">
+      <view>{{item.question}}</view>
+      <view wx:if="{{item.options.length}}" class="options">
+        <text wx:for="{{item.options}}" wx:for-item="option" wx:key="*this">{{option}} </text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{taskStatus}}" class="task">研究任务状态：{{taskStatus}}</view>
+  <view class="composer">
+    <input value="{{draft}}" placeholder="例如：600519 最近三个月走势" bindinput="onInput" confirm-type="send" bindconfirm="onSubmit" />
+    <button type="primary" loading="{{submitting}}" bindtap="onSubmit">发送</button>
+  </view>
+</view>
