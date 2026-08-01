@@ -67,6 +67,18 @@ from .yfinance import (
     YFinanceRateLimitError,
     YFinanceTransportError,
 )
+from .zhitu import (
+    DOCUMENTED_MINIMUM_PLAN_LIMITS as ZHITU_DOCUMENTED_MINIMUM_PLAN_LIMITS,
+    ZHITU_API_BASE,
+    ZhituApiError,
+    ZhituCandle,
+    ZhituClient,
+    ZhituError,
+    ZhituLimits,
+    ZhituQuote,
+    ZhituRateLimitError,
+    ZhituTransportError,
+)
 
 __all__ = [
     "FREE_PLAN_LIMITS",
@@ -126,4 +138,14 @@ __all__ = [
     "YFinanceError",
     "YFinanceRateLimitError",
     "YFinanceTransportError",
+    "ZHITU_DOCUMENTED_MINIMUM_PLAN_LIMITS",
+    "ZHITU_API_BASE",
+    "ZhituApiError",
+    "ZhituCandle",
+    "ZhituClient",
+    "ZhituError",
+    "ZhituLimits",
+    "ZhituQuote",
+    "ZhituRateLimitError",
+    "ZhituTransportError",
 ]

@@ -119,6 +119,19 @@ class QianfanModelClientTests(unittest.TestCase):
         with self.assertRaises(QianfanApiError):
             client.complete([ChatMessage(MessageRole.USER, "x")], ())
 
+    def test_disabled_provider_does_not_call_transport(self) -> None:
+        transport = CapturingTransport({"choices": []})
+        client = QianfanModelClient(
+            "test-secret-not-to-log",
+            transport=transport,
+            enabled=lambda: False,
+        )
+
+        with self.assertRaisesRegex(QianfanApiError, "disabled in parameter settings"):
+            client.complete([ChatMessage(MessageRole.USER, "x")], ())
+
+        self.assertIsNone(transport.request)
+
 
 if __name__ == "__main__":
     unittest.main()

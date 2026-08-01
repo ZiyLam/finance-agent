@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Finance Agent 的自然语言研究入口，使用 LangChain LCEL 和本地 RAG 增强链路。" />
+    <title>Finance Agent · 研究工作台</title>
+    <link rel="stylesheet" href="styles.css?v=professional-research-1" />
+  </head>
+  <body>
+    <main class="app-shell" aria-busy="false">
+      <header class="topbar">
+        <a class="brand" href="/web/" aria-label="Finance Agent 研究工作台">
+          <span class="brand-mark" aria-hidden="true">ƒ</span>
+          <span><strong>Finance Agent</strong><small>LangChain 研究工作台</small></span>
+        </a>
+        <div class="api-state" aria-live="polite">
+          <span class="status-dot" id="api-dot"></span>
+          <span id="api-status">正在连接本地 API…</span>
+          <a class="settings-link" href="/web/sources.html">参数配置</a>
+        </div>
+      </header>
+
+      <section class="natural-workspace">
+        <section class="request-panel" aria-labelledby="request-title">
+          <div class="request-mode-heading">
+            <div><p class="eyebrow">NATURAL-LANGUAGE RESEARCH</p><h1 id="request-title">直接描述你的研究需求</h1></div>
+            <div class="research-mode-switcher" role="group" aria-label="研究输入模式">
+              <button class="research-mode-button active" id="simple-mode" type="button" aria-pressed="true">精简版</button>
+              <button class="research-mode-button" id="professional-mode" type="button" aria-pressed="false">专业版</button>
+            </div>
+          </div>
+          <p class="request-intro" id="request-intro">可以直接输入模糊想法、问题或分析目标。系统会先识别意图，再通过 LCEL 检索增强链路补充可用能力和研究边界，最后交由 LangChain Agent 分析；必要时由 Agent 自然追问，不要求按固定格式填写。</p>
+          <section class="professional-controls" id="professional-controls" hidden aria-label="专业版研究参数">
+            <div class="professional-date-row">
+              <label class="field" for="professional-start-date"><span>开始日期</span><input id="professional-start-date" type="date" /></label>
+              <label class="field" for="professional-end-date"><span>结束日期</span><input id="professional-end-date" type="date" /></label>
+            </div>
+            <fieldset class="professional-fieldset">
+              <legend>研究市场 <small>可多选</small></legend>
+              <div class="professional-option-grid market-options" id="professional-market-options"></div>
+            </fieldset>
+            <fieldset class="professional-fieldset">
+              <legend>研究指数 <small>可跨市场勾选，最多 6 个</small></legend>
+              <div class="professional-option-grid index-options" id="professional-index-options"></div>
+            </fieldset>
+            <fieldset class="professional-fieldset">
+              <legend>研究指标 <small>按需勾选，行情类指标共用一次数据请求</small></legend>
+              <div class="professional-option-grid metric-options" id="professional-metric-options"></div>
+            </fieldset>
+            <p class="professional-note" id="professional-note">日期默认过去一周；可直接勾选指数并自动启用所属市场。</p>
+          </section>
+          <label class="field natural-request-field" for="user-request">
+            <span id="request-field-label">研究请求</span>
+            <textarea id="user-request" placeholder="例如：我想了解新能源板块近期值得关注什么，或者请分析 600000 的历史走势。"></textarea>
+          </label>
+          <p class="request-shortcut">按 <kbd>Ctrl</kbd> + <kbd>Enter</kbd> 可提交。可从一句模糊想法开始，Agent 会结合上下文分析或追问。</p>
+          <button class="button button-primary request-submit" id="run-research" type="button">开始分析</button>
+          <div class="request-examples" aria-label="输入示例">
+            <span>示例：查询 600000 最新价格</span><span>示例：分析 AAPL.US 近三个月走势</span>
+          </div>
+        </section>
+
+        <section class="result-panel" aria-labelledby="result-title">
+          <div class="result-heading">
+            <div><p class="eyebrow">RESEARCH RESULT</p><h2 id="result-title">研究结果</h2></div>
+            <div class="preview-actions"><span class="report-state" id="result-state">等待输入</span><button class="icon-button" id="copy-markdown" type="button" aria-label="复制研究结果 Markdown" title="复制 Markdown">↗</button></div>
+          </div>
+
+          <section class="language-chain-card" aria-labelledby="language-chain-title">
+            <div><p class="eyebrow">LANGUAGE ENHANCEMENT</p><h3 id="language-chain-title">LCEL · 本地 RAG</h3></div>
+            <p id="chain-status">等待研究请求；将检索应用内场景、数据源能力与研究边界。</p>
+            <div class="source-tags" id="chain-references"></div>
+          </section>
+
+          <article class="report-paper natural-result-paper">
+            <p class="report-kicker" id="result-kicker">自然语言研究入口</p>
+            <h3 id="result-report-title">等待你的研究想法</h3>
+            <div class="report-meta"><span id="result-scope">系统将先识别意图并检索上下文</span><span id="result-period">无需预先填写市场、代码或日期</span><span id="result-analysis-duration" hidden></span></div>
+            <div class="source-tags" id="result-sources"></div>
+            <div class="entity-candidates" id="entity-candidates" hidden aria-live="polite"></div>
+            <section class="report-section"><h4 id="summary-heading">Agent 分析</h4><p id="result-summary" class="placeholder">可以从一句模糊想法开始；Agent 会在检索增强后给出分析或自然追问。</p></section>
+            <section class="report-section"><h4 id="observations-heading">分析路径</h4><p id="result-observations" class="placeholder">尚未开始本轮分析。</p></section>
+            <section class="report-section report-risk"><h4 id="risks-heading">研究边界</h4><p id="result-risks" class="placeholder">Agent 仅使用配置的只读工具，不执行交易或提供收益保证。</p></section>
+            <section class="report-section"><h4 id="next-steps-heading">继续分析</h4><ul id="result-next-steps" class="next-steps placeholder"><li>输入任何研究想法后开始。</li></ul></section>
+            <p class="disclaimer">仅用于个人研究与内容整理，不构成投资建议或交易指令。</p>
+          </article>
+        </section>
+      </section>
+    </main>
+    <div class="loading-overlay" id="loading-overlay" hidden role="status" aria-live="assertive" aria-label="正在执行分析">
+      <div class="loading-dialog">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <strong id="loading-message">正在分析…</strong>
+        <span>正在读取数据并整理结果，请稍候。</span>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="app.js?v=modular-workbench-1"></script>
+  </body>
+</html>

@@ -15,6 +15,7 @@ class DataSourceTag(StrEnum):
     REALTIME_QUOTE = "realtime_quote"
     END_OF_DAY_QUOTE = "end_of_day_quote"
     HISTORICAL_OHLCV = "historical_ohlcv"
+    DATE_BOUNDED_HISTORICAL = "date_bounded_historical"
     VALUATION_METRICS = "valuation_metrics"
     LOCAL_SERVICE = "local_service"
 

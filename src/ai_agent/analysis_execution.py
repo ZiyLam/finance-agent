@@ -5,9 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 import json
+import logging
+from time import monotonic
 from typing import Any
 
 from .analysis_tags import AnalysisScenario, DataSourceTag
+from .observability import elapsed_milliseconds, log_event
 from .research_planning import SecurityAnalysisPlan, SecurityAnalysisRequest, SourceRoute, build_security_analysis_plan
 from .tools import ToolRegistry
 
@@ -104,16 +107,34 @@ class SecurityAnalysisExecutor:
     ) -> SecurityAnalysisResult:
         """Execute the plan until its evidence threshold is met or routes are exhausted."""
 
+        started_at = monotonic()
         plan = build_security_analysis_plan(request, provider=provider)
+        log_event(
+            "deterministic_plan_created",
+            scenario=request.scenario.value,
+            primary_source=plan.primary_source.name,
+            fallback_source_count=len(plan.fallback_sources),
+            required_successful_sources=plan.required_successful_sources,
+        )
         evidence: list[EvidenceRecord] = []
         errors: list[ExecutionError] = []
         for source in (plan.primary_source, *plan.fallback_sources):
             if len(evidence) >= plan.required_successful_sources:
                 break
+            source_started_at = monotonic()
             try:
                 tool_name, arguments = _tool_request(source, request)
             except ValueError as error:
                 errors.append(ExecutionError(source.name, source.priority, str(error)))
+                log_event(
+                    "deterministic_source_skipped",
+                    level=logging.WARNING,
+                    source=source.name,
+                    priority=source.priority,
+                    reason="unsupported_route",
+                    error_type=type(error).__name__,
+                    duration_ms=elapsed_milliseconds(source_started_at),
+                )
                 continue
             if tool_name not in self._available_tool_names:
                 errors.append(
@@ -123,16 +144,41 @@ class SecurityAnalysisExecutor:
                         f"planned tool '{tool_name}' is unavailable; configure this source before executing the plan",
                     )
                 )
+                log_event(
+                    "deterministic_source_skipped",
+                    level=logging.WARNING,
+                    source=source.name,
+                    priority=source.priority,
+                    tool_name=tool_name,
+                    reason="tool_unavailable",
+                    duration_ms=elapsed_milliseconds(source_started_at),
+                )
                 continue
+            log_event(
+                "deterministic_source_started",
+                source=source.name,
+                priority=source.priority,
+                tool_name=tool_name,
+            )
             try:
                 raw_result = self._tools.execute(tool_name, arguments)
-            except Exception:  # Tool implementations are external I/O boundaries.
+            except Exception as error:  # Tool implementations are external I/O boundaries.
                 errors.append(
                     ExecutionError(
                         source.name,
                         source.priority,
                         "planned tool raised an unexpected execution error",
                     )
+                )
+                log_event(
+                    "deterministic_source_failed",
+                    level=logging.ERROR,
+                    source=source.name,
+                    priority=source.priority,
+                    tool_name=tool_name,
+                    reason="tool_execution_error",
+                    error_type=type(error).__name__,
+                    duration_ms=elapsed_milliseconds(source_started_at),
                 )
                 continue
             if not isinstance(raw_result, str):
@@ -143,6 +189,15 @@ class SecurityAnalysisExecutor:
                         "planned tool returned an invalid non-text response",
                     )
                 )
+                log_event(
+                    "deterministic_source_failed",
+                    level=logging.ERROR,
+                    source=source.name,
+                    priority=source.priority,
+                    tool_name=tool_name,
+                    reason="invalid_tool_output",
+                    duration_ms=elapsed_milliseconds(source_started_at),
+                )
                 continue
             if raw_result.startswith("ERROR:"):
                 errors.append(
@@ -151,6 +206,15 @@ class SecurityAnalysisExecutor:
                         source.priority,
                         "configured data tool reported a failure; check source status and local service availability",
                     )
+                )
+                log_event(
+                    "deterministic_source_failed",
+                    level=logging.WARNING,
+                    source=source.name,
+                    priority=source.priority,
+                    tool_name=tool_name,
+                    reason="tool_reported_error",
+                    duration_ms=elapsed_milliseconds(source_started_at),
                 )
                 continue
             parsed_result = _parse_tool_result(raw_result)
@@ -165,8 +229,23 @@ class SecurityAnalysisExecutor:
                     data=parsed_result,
                 )
             )
+            log_event(
+                "deterministic_source_completed",
+                source=source.name,
+                priority=source.priority,
+                tool_name=tool_name,
+                duration_ms=elapsed_milliseconds(source_started_at),
+            )
         risk_flags = _risk_flags(plan, evidence, errors)
         status = "complete" if len(evidence) >= plan.required_successful_sources else "incomplete"
+        log_event(
+            "deterministic_execution_completed",
+            status=status,
+            evidence_count=len(evidence),
+            execution_error_count=len(errors),
+            risk_flag_count=len(risk_flags),
+            duration_ms=elapsed_milliseconds(started_at),
+        )
         return SecurityAnalysisResult(plan, status, tuple(evidence), tuple(risk_flags), tuple(errors))
 
 
@@ -206,6 +285,40 @@ def _tool_request(source: SourceRoute, request: SecurityAnalysisRequest) -> tupl
             "adjustflag": "3",
             "limit": 120,
         }
+    if source.name == "zhitu":
+        symbol = _zhitu_symbol(request.symbol, request.market.value)
+        if scenario is AnalysisScenario.A_SHARE_REALTIME_QUOTE:
+            return "zhitu_market_data", {"action": "stock_quote", "symbol": symbol}
+        if scenario in {
+            AnalysisScenario.A_SHARE_PRICE_HISTORY,
+            AnalysisScenario.CROSS_SOURCE_HISTORY_VALIDATION,
+            AnalysisScenario.RESEARCH_BRIEF,
+        }:
+            return "zhitu_market_data", {
+                "action": "stock_history",
+                "symbol": symbol,
+                "start_date": _require_date(request.start_date),
+                "end_date": _require_date(request.end_date),
+                "limit": 120,
+            }
+    if source.name == "tickflow":
+        symbol = _tickflow_symbol(request.symbol, request.market.value)
+        if scenario in {AnalysisScenario.A_SHARE_REALTIME_QUOTE, AnalysisScenario.GLOBAL_MARKET_SNAPSHOT}:
+            return "tickflow_market_data", {"action": "quote", "symbols": [symbol]}
+        if scenario in {
+            AnalysisScenario.A_SHARE_PRICE_HISTORY,
+            AnalysisScenario.GLOBAL_PRICE_HISTORY,
+            AnalysisScenario.CROSS_SOURCE_HISTORY_VALIDATION,
+            AnalysisScenario.RESEARCH_BRIEF,
+        }:
+            return "tickflow_market_data", {
+                "action": "historical_candles",
+                "symbol": symbol,
+                "start_date": _require_date(request.start_date),
+                "end_date": _require_date(request.end_date),
+                "adjust": "none",
+                "limit": 120,
+            }
     if source.name == "eodhd":
         if scenario is AnalysisScenario.SECURITY_LOOKUP:
             return "eodhd_market_data", {"action": "search", "query": request.symbol, "limit": 10}
@@ -379,3 +492,31 @@ def _yahoo_symbol(symbol: str) -> str:
 def _alpha_vantage_symbol(symbol: str) -> str:
     normalized = symbol.strip().upper()
     return normalized[:-3] if normalized.endswith(".US") else normalized
+
+
+def _tickflow_symbol(symbol: str, market: str) -> str:
+    """Map only unambiguous project symbols to TickFlow's code.exchange format."""
+
+    normalized = symbol.strip().upper()
+    if normalized.endswith(".SS"):
+        return normalized[:-3] + ".SH"
+    if normalized.endswith((".SH", ".SZ", ".BJ", ".US", ".HK")):
+        return normalized
+    if market == "a_share" and len(normalized) == 6 and normalized.isdigit():
+        exchange = "SH" if normalized.startswith(("5", "6", "9")) else "SZ"
+        return f"{normalized}.{exchange}"
+    raise ValueError("TickFlow requires an exchange-suffixed symbol, such as 600000.SH or AAPL.US")
+
+
+def _zhitu_symbol(symbol: str, market: str) -> str:
+    """Map only documented 沪深 symbols to 智兔数服's suffix convention."""
+
+    normalized = symbol.strip().upper()
+    if normalized.endswith(".SS"):
+        return normalized[:-3] + ".SH"
+    if normalized.endswith((".SH", ".SZ")):
+        return normalized
+    if market == "a_share" and len(normalized) == 6 and normalized.isdigit():
+        exchange = "SH" if normalized.startswith(("5", "6", "9")) else "SZ"
+        return f"{normalized}.{exchange}"
+    raise ValueError("智兔数服 requires an A-share symbol such as 600000.SH")

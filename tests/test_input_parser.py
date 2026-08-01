@@ -54,6 +54,26 @@ class ResearchIntentParserTests(unittest.TestCase):
         self.assertFalse(intent.is_ready)
         self.assertIn("scenario", {item.field for item in intent.clarifications})
 
+    def test_history_request_without_a_time_expression_defaults_to_the_past_week(self) -> None:
+        intent = self.parser.parse("分析 600519 走势")
+
+        self.assertTrue(intent.is_ready)
+        self.assertEqual((intent.start_date, intent.end_date), ("2026-07-20", "2026-07-27"))
+        self.assertTrue(any("过去一周" in item for item in intent.assumptions))
+
+    def test_vague_recent_expression_takes_precedence_over_the_default_period(self) -> None:
+        intent = self.parser.parse("分析 600519 近期走势")
+
+        self.assertTrue(intent.is_ready)
+        self.assertEqual((intent.start_date, intent.end_date), ("2026-06-27", "2026-07-27"))
+        self.assertTrue(any("近期/最近" in item for item in intent.assumptions))
+
+    def test_explicit_dates_take_precedence_over_relative_or_default_windows(self) -> None:
+        intent = self.parser.parse("分析 600519 最近 2026-01-02 至 2026-02-03 的走势")
+
+        self.assertTrue(intent.is_ready)
+        self.assertEqual((intent.start_date, intent.end_date), ("2026-01-02", "2026-02-03"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -108,11 +108,15 @@ class YFinanceClient:
         limits: YFinanceLimits = DEFAULT_YFINANCE_LIMITS,
         api: Any | None = None,
         cache_directory: str | None = None,
+        timeout_seconds: float = 8.0,
         clock: Callable[[], float] = monotonic,
         current_date: Callable[[], date] = date.today,
     ) -> None:
         self._api = api
         self._cache_directory = cache_directory or getenv("YFINANCE_CACHE_DIR")
+        if timeout_seconds <= 0:
+            raise ValueError("yfinance timeout_seconds must be positive")
+        self._timeout_seconds = timeout_seconds
         self._guard = _RateGuard(limits, clock, current_date)
 
     def historical_candles(
@@ -148,6 +152,7 @@ class YFinanceClient:
                     interval=normalized_interval,
                     auto_adjust=auto_adjust,
                     actions=False,
+                    timeout=self._timeout_seconds,
                 )
         except Exception as error:
             raise YFinanceTransportError("Could not retrieve Yahoo Finance historical data") from error

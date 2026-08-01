@@ -3,21 +3,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hmac import compare_digest
 from os import getenv
+from pathlib import Path
+from time import monotonic
 from typing import Callable
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, status
-from pydantic import BaseModel, Field
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from ..application.input_parser import ResearchIntentParser
 from ..application.narration import ReportNarrator
 from ..application.research_service import ResearchService
+from ..application.source_connectivity import SourceConnectivityService
+from ..application.source_credentials import SourceCredentialService
+from ..application.web_workspace import WebWorkspaceService
 from ..infrastructure.rate_limit import InMemoryRateLimiter
 from ..infrastructure.store import InMemoryApplicationStore
 from ..infrastructure.task_queue import InMemoryTaskQueue
+from ..observability import bind_request_id, elapsed_milliseconds, log_event, new_request_id, reset_request_id
 from ..tools import ToolRegistry
 from .auth import (
-    AccessDeniedError,
     AccessPolicy,
     AuthenticationError,
     SessionIdentity,
@@ -25,14 +32,19 @@ from .auth import (
     WechatIdentityProvider,
     WechatMiniProgramClient,
 )
-
-
-class WechatLoginPayload(BaseModel):
-    code: str = Field(min_length=1, max_length=256)
-
-
-class ConversationMessagePayload(BaseModel):
-    content: str = Field(min_length=1, max_length=4_000)
+from .mini_program_routes import (
+    ConversationMessagePayload,
+    WechatLoginPayload,
+    create_mini_program_router,
+)
+from .web_routes import (
+    SourceEnabledPayload,
+    SourceTokenPayload,
+    WebChatPayload,
+    WebProfessionalResearchPayload,
+    WebResearchPayload,
+    create_web_router,
+)
 
 
 @dataclass(slots=True)
@@ -83,15 +95,72 @@ def create_app(
     *,
     tool_registry_factory: Callable[[], ToolRegistry] = ToolRegistry,
     narrator: ReportNarrator | None = None,
+    web_workspace: WebWorkspaceService | None = None,
+    source_credentials: SourceCredentialService | None = None,
+    source_connectivity: SourceConnectivityService | None = None,
 ) -> FastAPI:
-    """Create the HTTP app without exposing data-source credentials to clients."""
+    """Create the HTTP app without exposing data-source credentials to clients.
+
+    The ``/web/`` static assets are a formal first-party entry point.  Their
+    requests reach the same LangChain Agent and read-only research services as
+    other application clients; credentials remain server-side.
+    """
 
     app_components = components or create_development_components(
         tool_registry_factory=tool_registry_factory,
         narrator=narrator,
     )
-    app = FastAPI(title="Finance Agent Mini-program API", version="0.2.0")
+    app = FastAPI(title="Finance Agent API", version="0.3.0")
     app.state.components = app_components
+    app.state.web_workspace = web_workspace
+    app.state.source_credentials = source_credentials
+    app.state.source_connectivity = source_connectivity
+
+    @app.middleware("http")
+    async def trace_api_request(request: Request, call_next):  # type: ignore[no-untyped-def]
+        """Attach a correlation ID and log only safe API request metadata."""
+
+        path = request.url.path
+        if not (path == "/health" or path.startswith("/v1/")):
+            return await call_next(request)
+        request_id = new_request_id()
+        context_token = bind_request_id(request_id)
+        started_at = monotonic()
+        log_event("http_request_started", method=request.method, path=path)
+        try:
+            response = await call_next(request)
+        except Exception as error:
+            log_event(
+                "http_request_failed",
+                level=40,
+                method=request.method,
+                path=path,
+                duration_ms=elapsed_milliseconds(started_at),
+                error_type=type(error).__name__,
+            )
+            raise
+        else:
+            response.headers["X-Request-ID"] = request_id
+            log_event(
+                "http_request_completed",
+                method=request.method,
+                path=path,
+                status_code=response.status_code,
+                duration_ms=elapsed_milliseconds(started_at),
+            )
+            return response
+        finally:
+            reset_request_id(context_token)
+
+    web_directory = Path(__file__).resolve().parents[3] / "web"
+    if web_directory.is_dir():
+        app.mount("/web", StaticFiles(directory=web_directory, html=True), name="web")
+
+    @app.get("/", include_in_schema=False)
+    def web_root() -> RedirectResponse:
+        if not web_directory.is_dir():
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Web workspace assets are not installed")
+        return RedirectResponse(url="/web/")
 
     def current_identity(authorization: str | None = Header(default=None)) -> SessionIdentity:
         if not authorization or not authorization.startswith("Bearer "):
@@ -111,77 +180,93 @@ def create_app(
             )
         return identity
 
+    def require_web_access(
+        request: Request,
+        x_finance_agent_token: str | None = Header(default=None),
+    ) -> None:
+        """Allow local Web use, or require an explicit token off the loopback host."""
+
+        configured_token = getenv("AGENT_WEB_ACCESS_TOKEN", "").strip()
+        if configured_token:
+            if x_finance_agent_token and compare_digest(x_finance_agent_token, configured_token):
+                return
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "a valid Web access token is required")
+        client_host = request.client.host if request.client else ""
+        if client_host in {"127.0.0.1", "::1", "testclient"}:
+            return
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Web API is limited to loopback access; set AGENT_WEB_ACCESS_TOKEN before remote access",
+        )
+
+    def require_local_credential_access(
+        request: Request,
+        x_finance_agent_token: str | None = Header(default=None),
+    ) -> None:
+        """Keep credential maintenance and temporary token display on loopback.
+
+        The rest of the personal Web app can be deliberately enabled for a
+        remote device with ``AGENT_WEB_ACCESS_TOKEN``.  Source tokens are more
+        sensitive, so their maintenance API remains local even in that case.
+        """
+
+        require_web_access(request, x_finance_agent_token)
+        client_host = request.client.host if request.client else ""
+        if client_host not in {"127.0.0.1", "::1", "testclient"}:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Source credential maintenance and token display are limited to loopback access",
+            )
+
+    def active_web_workspace() -> WebWorkspaceService:
+        if app.state.web_workspace is None:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Web workspace runtime is not configured; start ai_agent.api.main",
+            )
+        return app.state.web_workspace
+
+    def active_source_credentials() -> SourceCredentialService:
+        if app.state.source_credentials is None:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Source credential maintenance is not configured; start ai_agent.api.main",
+            )
+        return app.state.source_credentials
+
+    def active_source_connectivity() -> SourceConnectivityService:
+        if app.state.source_connectivity is None:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Source connectivity checks are not configured; start ai_agent.api.main",
+            )
+        return app.state.source_connectivity
+
     @app.get("/health")
     def health() -> dict[str, object]:
         return {
             "status": "ok",
             "storage": "in_memory_development_only",
             "wechat_login_configured": app_components.wechat is not None,
+            "web_workspace_configured": app.state.web_workspace is not None,
         }
 
-    @app.post("/v1/auth/wechat/login")
-    def login(payload: WechatLoginPayload) -> dict[str, object]:
-        if app_components.wechat is None:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "WeChat login is not configured; set WECHAT_APP_ID and WECHAT_APP_SECRET on the server",
-            )
-        try:
-            user_id = app_components.wechat.exchange_code(payload.code)
-            app_components.access_policy.assert_allowed(user_id)
-            token, identity = app_components.sessions.issue(user_id)
-        except AuthenticationError as error:
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(error)) from error
-        except AccessDeniedError as error:
-            status_code = (
-                status.HTTP_503_SERVICE_UNAVAILABLE
-                if "no owner user" in str(error)
-                else status.HTTP_403_FORBIDDEN
-            )
-            raise HTTPException(status_code, str(error)) from error
-        response = {"access_token": token, "token_type": "Bearer", "expires_at": identity.expires_at.isoformat()}
-        # The opaque ID is helpful for a one-time owner allow-list bootstrap in
-        # development.  It is never emitted in a production response.
-        if getenv("AGENT_ENV", "development").strip().lower() != "production":
-            response["user_id"] = identity.user_id
-        return response
-
-    @app.post("/v1/conversations", status_code=status.HTTP_201_CREATED)
-    def create_conversation(identity: SessionIdentity = Depends(current_identity)) -> dict[str, object]:
-        conversation = app_components.research.create_conversation(identity.user_id)
-        return {"id": conversation.id, "created_at": conversation.created_at.isoformat()}
-
-    @app.post("/v1/conversations/{conversation_id}/messages", status_code=status.HTTP_202_ACCEPTED)
-    def submit_message(
-        conversation_id: str,
-        payload: ConversationMessagePayload,
-        background_tasks: BackgroundTasks,
-        identity: SessionIdentity = Depends(enforce_user_rate_limit),
-    ) -> dict[str, object]:
-        try:
-            submission = app_components.research.submit_message(identity.user_id, conversation_id, payload.content)
-        except LookupError as error:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation was not found") from error
-        except ValueError as error:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(error)) from error
-        if submission.task_id:
-            # Local development convenience.  Production workers must consume a
-            # distributed queue and must not run inside API request workers.
-            background_tasks.add_task(app_components.research.run_next_task)
-        return submission.to_dict()
-
-    @app.get("/v1/tasks/{task_id}")
-    def get_task(task_id: str, identity: SessionIdentity = Depends(current_identity)) -> dict[str, object]:
-        task = app_components.research.get_task(identity.user_id, task_id)
-        if task is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "task was not found")
-        return task.to_dict()
-
-    @app.get("/v1/reports/{report_id}")
-    def get_report(report_id: str, identity: SessionIdentity = Depends(current_identity)) -> dict[str, object]:
-        report = app_components.research.get_report(identity.user_id, report_id)
-        if report is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "report was not found")
-        return {"id": report.id, "task_id": report.task_id, "created_at": report.created_at.isoformat(), "report": report.payload}
+    web_router = create_web_router(
+        app,
+        require_web_access=require_web_access,
+        require_local_credential_access=require_local_credential_access,
+        active_web_workspace=active_web_workspace,
+        active_source_credentials=active_source_credentials,
+        active_source_connectivity=active_source_connectivity,
+    )
+    mini_program_router = create_mini_program_router(
+        app_components,
+        current_identity=current_identity,
+        enforce_user_rate_limit=enforce_user_rate_limit,
+    )
+    # FastAPI 0.128 keeps include_router entries lazy in app.routes.  These
+    # already-compiled APIRoutes stay flat for existing endpoint inspection.
+    app.router.routes.extend(web_router.routes)
+    app.router.routes.extend(mini_program_router.routes)
 
     return app

@@ -1,17 +1,18 @@
 [CmdletBinding()]
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$Arguments
+    [string[]]$AgentArguments
 )
 
-$runtimePython = Join-Path $PSScriptRoot 'data-source-runtime\Scripts\finance-agent.exe'
+$codexRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$runtimePython = Join-Path $codexRoot '.venv\Scripts\finance-agent.exe'
 $cacheDirectory = Join-Path $PSScriptRoot 'cache\yfinance'
 
 if (-not (Test-Path -LiteralPath $runtimePython -PathType Leaf)) {
-    throw "The project data-source runtime is missing. Recreate it using resources\\README.md."
+    throw "The shared Codex runtime is missing. From the project directory, run: & 'G:\Program Files\Codex\.venv\Scripts\python.exe' -m pip install -e ."
 }
 
 New-Item -ItemType Directory -Force -Path $cacheDirectory | Out-Null
 $env:YFINANCE_CACHE_DIR = $cacheDirectory
-& $runtimePython @Arguments
+& $runtimePython @AgentArguments
 exit $LASTEXITCODE

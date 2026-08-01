@@ -11,8 +11,10 @@ dist/
 # Local environments and configuration
 .venv/
 .env
+finance-agent-api-token-backup.txt
 resources/data-source-runtime/
 resources/cache/
+resources/logs/
 
 # Editor and operating-system files
 .vscode/

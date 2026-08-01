@@ -80,6 +80,7 @@ class YFinanceClientTests(unittest.TestCase):
                     "interval": "1d",
                     "auto_adjust": False,
                     "actions": False,
+                    "timeout": 8.0,
                 }
             ],
         )

@@ -37,9 +37,11 @@ class ResearchIntentParser:
 
         symbol, market = self._instrument_for(text)
         scenario = self._scenario_for(text, market)
+        date_range_invalid = False
         try:
             start_date, end_date, assumptions = self._date_range_for(text)
         except ValueError:
+            date_range_invalid = True
             start_date, end_date, assumptions = None, None, ["检测到无效日期；需要用户重新确认日期区间"]
         clarifications: list[Clarification] = []
 
@@ -67,12 +69,17 @@ class ResearchIntentParser:
                 )
             )
 
-        if scenario in {
+        requires_date_range = scenario in {
             AnalysisScenario.A_SHARE_PRICE_HISTORY,
             AnalysisScenario.GLOBAL_PRICE_HISTORY,
             AnalysisScenario.CROSS_SOURCE_HISTORY_VALIDATION,
             AnalysisScenario.RESEARCH_BRIEF,
-        } and (start_date is None or end_date is None):
+        }
+        if requires_date_range and start_date is None and end_date is None and not date_range_invalid:
+            start_date = (self._today() - timedelta(days=7)).isoformat()
+            end_date = self._today().isoformat()
+            assumptions.append(f"未指定时间范围，默认使用过去一周（{start_date}）至 T0（{end_date}）")
+        elif requires_date_range and (start_date is None or end_date is None):
             clarifications.append(
                 Clarification(
                     "date_range",
@@ -162,7 +169,53 @@ class ResearchIntentParser:
         if "今年" in text:
             assumptions.append(f"“今年”按 {today.year}-01-01 至 {today.isoformat()} 解析")
             return date(today.year, 1, 1).isoformat(), today.isoformat(), assumptions
+        named_range = _named_time_range(text, today)
+        if named_range is not None:
+            start, end, explanation = named_range
+            assumptions.append(explanation)
+            return start.isoformat(), end.isoformat(), assumptions
         return None, None, assumptions
+
+
+def _named_time_range(text: str, today: date) -> tuple[date, date, str] | None:
+    """Resolve common unquantified time phrases before applying the T-1/T0 default.
+
+    The resolved range is retained as an assumption, preventing “近期” or
+    “最近” from silently falling back to the much narrower default window.
+    """
+
+    normalized = text.casefold()
+    if any(phrase in normalized for phrase in ("近期", "最近", "近来", "近段时间", "recent", "lately")):
+        start = today - timedelta(days=30)
+        return start, today, f"检测到近期/最近等时间表达，按最近 30 个自然日（{start.isoformat()} 至 {today.isoformat()}）解析"
+    if "短期" in normalized:
+        start = today - timedelta(days=30)
+        return start, today, f"‘短期’按最近 30 个自然日（{start.isoformat()} 至 {today.isoformat()}）解析"
+    if "中期" in normalized:
+        start = _subtract_months(today, 6)
+        return start, today, f"‘中期’按最近六个月（{start.isoformat()} 至 {today.isoformat()}）解析"
+    if "长期" in normalized:
+        start = _subtract_months(today, 12)
+        return start, today, f"‘长期’按最近一年（{start.isoformat()} 至 {today.isoformat()}）解析"
+    if "本周" in normalized:
+        start = today - timedelta(days=today.weekday())
+        return start, today, f"‘本周’按本周一至 T0（{start.isoformat()} 至 {today.isoformat()}）解析"
+    if "上周" in normalized:
+        end = today - timedelta(days=today.weekday() + 1)
+        start = end - timedelta(days=6)
+        return start, end, f"‘上周’按自然周（{start.isoformat()} 至 {end.isoformat()}）解析"
+    if "上月" in normalized:
+        first_of_month = today.replace(day=1)
+        end = first_of_month - timedelta(days=1)
+        start = end.replace(day=1)
+        return start, end, f"‘上月’按自然月（{start.isoformat()} 至 {end.isoformat()}）解析"
+    if "去年" in normalized:
+        return (
+            date(today.year - 1, 1, 1),
+            date(today.year - 1, 12, 31),
+            f"‘去年’按自然年（{today.year - 1}-01-01 至 {today.year - 1}-12-31）解析",
+        )
+    return None
 
 
 def _normalise_date(value: str) -> str:

@@ -1,3 +1,15 @@
+# 共享 LangChain 运行环境
+
+本文是 [项目主说明](../README.md) 的本机运行环境补充，仅说明共享虚拟环境、缓存和资源目录；项目架构、职责与使用路径请以主说明为准。
+
+项目的 Python 和 LangChain 依赖统一安装在 `G:\Program Files\Codex\.venv`，而不是本目录中的独立虚拟环境。完成依赖安装后，从项目根目录执行：
+
+```powershell
+& 'G:\Program Files\Codex\.venv\Scripts\python.exe' -m pip install -e .
+```
+
+`finance-agent.ps1` 会使用该共享环境。`cache/` 仍只用于可再生的行情数据缓存。
+
 # 数据源资源目录
 
 此目录统一存放本项目的本地数据源运行资源，避免把项目依赖、服务缓存或临时状态混入全局 Python 安装目录 `G:\Program Files\Python314`。
@@ -12,11 +24,7 @@
 
 ```powershell
 cd 'G:\Program Files\Codex\finance-agent'
-& 'G:\Program Files\Python314\python.exe' -m venv 'resources\data-source-runtime'
-.\resources\data-source-runtime\Scripts\Activate.ps1
-$env:PIP_CACHE_DIR = 'G:\Program Files\Codex\finance-agent\resources\cache\pip'
-python -m pip install --upgrade pip
-python -m pip install -e .
+& 'G:\Program Files\Codex\.venv\Scripts\python.exe' -m pip install -e .
 ```
 
 推荐使用固定启动入口；它会自动将 yfinance 缓存放入本目录：

@@ -10,7 +10,7 @@ from ai_agent.research_planning import SecurityAnalysisRequest, build_security_a
 
 
 class ResearchPlanningTests(unittest.TestCase):
-    def test_a_share_realtime_plan_uses_explicit_tagged_order(self) -> None:
+    def test_a_share_realtime_plan_prefers_low_latency_sources(self) -> None:
         plan = build_security_analysis_plan(
             SecurityAnalysisRequest(
                 symbol="600000",
@@ -19,8 +19,11 @@ class ResearchPlanningTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(plan.primary_source.name, "biying")
-        self.assertEqual([source.name for source in plan.fallback_sources], ["alltick"])
+        self.assertEqual(plan.primary_source.name, "tickflow")
+        self.assertEqual([source.name for source in plan.fallback_sources], ["zhitu", "biying", "alltick"])
+        self.assertEqual(plan.primary_source.latency_class, "low")
+        self.assertEqual(plan.primary_source.routing_priority, plan.fallback_sources[0].routing_priority)
+        self.assertEqual(plan.fallback_sources[0].latency_class, "medium")
         self.assertEqual(plan.model.provider, "codex")
         self.assertEqual(plan.required_successful_sources, 1)
         self.assertIn("source_timestamp", plan.required_evidence_fields)
@@ -39,7 +42,7 @@ class ResearchPlanningTests(unittest.TestCase):
         )
 
         routed_sources = [plan.primary_source, *plan.fallback_sources]
-        self.assertEqual(plan.primary_source.name, "eodhd")
+        self.assertEqual(plan.primary_source.name, "tickflow")
         self.assertNotIn("aktools", [source.name for source in routed_sources])
         self.assertTrue(
             all("global_markets" in source.tags for source in routed_sources),
@@ -104,12 +107,15 @@ class TaggedDataSourceCatalogTests(unittest.TestCase):
     def test_tags_describe_only_exposed_adapter_capabilities(self) -> None:
         biying = get_data_source("biying")
         alpha_vantage = get_data_source("alphavantage")
+        eastmoney = get_data_source("eastmoney")
 
-        assert biying is not None and alpha_vantage is not None
+        assert biying is not None and alpha_vantage is not None and eastmoney is not None
         self.assertIn(DataSourceTag.REALTIME_QUOTE, biying.tags)
         self.assertIn(DataSourceTag.VALUATION_METRICS, biying.tags)
         self.assertIn(DataSourceTag.END_OF_DAY_QUOTE, alpha_vantage.tags)
         self.assertNotIn(DataSourceTag.REALTIME_QUOTE, alpha_vantage.tags)
+        self.assertIn(DataSourceTag.SYMBOL_SEARCH, eastmoney.tags)
+        self.assertNotIn(DataSourceTag.HISTORICAL_OHLCV, eastmoney.tags)
 
 
 if __name__ == "__main__":

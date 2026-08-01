@@ -1,6 +1,6 @@
-"""Provider-agnostic building blocks for a tool-capable AI agent."""
+"""Finance-research application components built around LangChain."""
 
-from .agent import Agent, AgentResult
 from .config import AgentSettings
+from .langchain.agent import Agent, AgentResult
 
 __all__ = ["Agent", "AgentResult", "AgentSettings"]

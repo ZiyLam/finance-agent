@@ -105,7 +105,17 @@ class AgentSettingsTests(unittest.TestCase):
     def test_defaults_to_local_codex_cli_and_can_keep_echo_explicit(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             settings = AgentSettings.from_environment()
-        self.assertEqual((settings.provider, settings.model, settings.codex_timeout_seconds), ("codex", "", 120))
+        self.assertEqual(
+            (
+                settings.provider,
+                settings.model,
+                settings.codex_timeout_seconds,
+                settings.web_codex_timeout_seconds,
+                settings.web_conversation_ttl_seconds,
+                settings.web_max_conversations,
+            ),
+            ("codex", "", 120, 35, 1800, 50),
+        )
 
         with patch.dict(
             "os.environ",

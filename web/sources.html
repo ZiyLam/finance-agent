@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Finance Agent 参数配置页面" />
+    <title>Finance Agent · 参数配置</title>
+    <link rel="stylesheet" href="styles.css?v=provider-modules-1" />
+  </head>
+  <body>
+    <main class="app-shell settings-app">
+      <header class="topbar settings-topbar">
+        <a class="brand" href="/web/" aria-label="返回 Finance Agent 研究工作台">
+          <span class="brand-mark" aria-hidden="true">ƒ</span>
+          <span><strong>Finance Agent</strong><small>LangChain 研究工作台</small></span>
+        </a>
+        <div class="api-state" aria-live="polite">
+          <span class="status-dot" id="api-dot"></span>
+          <span id="api-status">正在连接本地 API…</span>
+        </div>
+        <div class="top-actions">
+          <a class="button button-secondary button-link" href="/web/">返回研究工作台</a>
+          <button class="button button-primary" id="refresh-sources" type="button">刷新状态</button>
+        </div>
+      </header>
+
+      <section class="settings-shell">
+        <div class="settings-intro">
+          <p class="eyebrow">PARAMETER CONFIGURATION</p>
+          <h1>参数配置</h1>
+          <p>在这里统一维护 Web API 访问令牌、行情数据源和 LLM 模型提供方的本地令牌。行情数据与模型服务分模块管理；令牌提交后由后端使用当前 Windows 用户的 DPAPI 加密保存。</p>
+        </div>
+
+        <section class="settings-security-card" aria-labelledby="web-access-title">
+          <div>
+            <p class="eyebrow">WEB API ACCESS</p>
+            <h2 id="web-access-title">Web API 访问令牌</h2>
+            <p>仅在远程访问，或服务端设置了 <code>AGENT_WEB_ACCESS_TOKEN</code> 时需要。它只保存在本次浏览器会话中，与下方的数据源令牌相互独立。</p>
+          </div>
+          <div class="settings-access-form">
+            <label class="field compact-field" for="api-token">
+              <span>访问令牌（如需要）</span>
+              <input id="api-token" type="password" autocomplete="off" placeholder="留空则使用本机回环访问" />
+            </label>
+            <button class="button button-secondary" id="connect-api" type="button">连接 API</button>
+          </div>
+        </section>
+
+        <section class="settings-notice" aria-label="令牌优先级说明">
+          <strong>本机开发提醒：</strong><span>当前令牌回显仅允许从 127.0.0.1 访问，且不会写入浏览器持久化存储。环境变量优先于本地加密令牌；删除本地令牌不会修改环境变量。准备远程访问、共享屏幕或提交代码前，请恢复为不回显。</span>
+        </section>
+
+        <section class="settings-notice" aria-label="连通性测试说明">
+          <strong>启用与连通性：</strong><span>只有标记为“已启用”的提供方才会进入 Agent、确定性研究或 LLM 调用；停用后也不会进行连通测试。页面不会自动访问远端，手动测试可能占用一次供应商请求额度，千帆测试会产生一次极小模型调用。</span>
+        </section>
+
+        <section class="settings-module" aria-labelledby="sources-title">
+          <div class="settings-section-heading">
+            <div><p class="eyebrow">MARKET-DATA SOURCES</p><h2 id="sources-title">数据源模块</h2><p class="settings-module-description">维护行情、历史数据与证券检索服务。</p></div>
+            <div class="source-heading-actions">
+              <p id="sources-summary" aria-live="polite">正在加载配置目录…</p>
+              <button class="button button-secondary" id="test-all-sources" type="button">测试全部数据源</button>
+            </div>
+          </div>
+          <div class="source-settings-grid" id="source-settings-list" aria-live="polite">
+            <p class="settings-empty">正在从 Finance Agent API 读取数据源配置…</p>
+          </div>
+        </section>
+
+        <section class="settings-module llm-settings-module" aria-labelledby="llm-title">
+          <div class="settings-section-heading">
+            <div><p class="eyebrow">LLM PROVIDERS</p><h2 id="llm-title">LLM 模块</h2><p class="settings-module-description">维护 Agent 与报告生成可使用的大模型提供方；千帆及后续模型统一归入此处。</p></div>
+            <div class="source-heading-actions">
+              <p id="llm-summary" aria-live="polite">正在加载模型目录…</p>
+              <button class="button button-secondary" id="test-all-llms" type="button">测试全部 LLM</button>
+            </div>
+          </div>
+          <div class="source-settings-grid llm-settings-grid" id="llm-settings-list" aria-live="polite">
+            <p class="settings-empty">正在从 Finance Agent API 读取 LLM 配置…</p>
+          </div>
+        </section>
+      </section>
+    </main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="sources.js?v=provider-modules-3"></script>
+  </body>
+</html>

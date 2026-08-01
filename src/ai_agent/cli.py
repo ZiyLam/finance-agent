@@ -9,15 +9,16 @@ from pathlib import Path
 import sys
 from typing import Any, Callable, Sequence
 
-from .agent import Agent
 from .analysis_execution import SecurityAnalysisExecutor
 from .analysis_tags import AnalysisScenario, Market
 from .config import AgentSettings
-from .data_sources import DATA_SOURCE_CATALOG, data_source_names, get_data_source
-from .memory import ConversationMemory
+from .data_sources import data_source_names, get_data_source, ordered_data_sources
+from .langchain.agent import Agent
+from .langchain.memory import ConversationMemory
 from .providers.codex_cli import CodexCliError, CodexCliModelClient
 from .providers.echo import EchoModelClient
 from .providers.qianfan import QianfanError, QianfanModelClient
+from .provider_activation import ProviderActivationStore
 from .research_planning import (
     SecurityAnalysisRequest,
     build_security_analysis_plan,
@@ -88,12 +89,13 @@ def run_source_command(
         if sources:
             _print_source_help(output)
             return 2
-        for definition in DATA_SOURCE_CATALOG:
+        for definition in ordered_data_sources():
             usage = "required by current adapter" if definition.token_required_by_adapter else "maintenance only"
             tags = ",".join(sorted(tag.value for tag in definition.tags)) or "none"
             output(
                 f"{definition.name}: {definition.display_name}; "
                 f"credential slot {usage} ({definition.token_environment_variable}); tags [{tags}]"
+                f"; routing priority {definition.routing_priority}; latency class {definition.latency_class.value}"
             )
         return 0
 
@@ -367,6 +369,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             qianfan_api_key,
             model=settings.model,
             timeout_seconds=settings.qianfan_timeout_seconds,
+            enabled=lambda: ProviderActivationStore().is_enabled("qianfan"),
         )
     else:
         raise SystemExit(

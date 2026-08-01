@@ -1,6 +1,13 @@
-"""Application-layer use cases for the multi-user finance research service.
+"""Application-layer use cases."""
 
-Imports remain intentionally explicit (for example,
-``ai_agent.application.research_service``) to keep contracts independent from
-infrastructure and avoid circular composition imports.
-"""
+from .web_workspace import WebWorkspaceError, WebWorkspaceService
+from .source_connectivity import SourceConnectivityService
+from .source_credentials import SourceCredentialError, SourceCredentialService
+
+__all__ = [
+    "SourceCredentialError",
+    "SourceCredentialService",
+    "SourceConnectivityService",
+    "WebWorkspaceError",
+    "WebWorkspaceService",
+]

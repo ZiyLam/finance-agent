@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from .analysis_tags import AnalysisScenario, DataSourceTag, Market, ModelTag
-from .data_sources import DATA_SOURCE_CATALOG, DataSourceDefinition
+from .data_sources import DATA_SOURCE_CATALOG, DataSourceDefinition, ordered_data_sources
 from .model_catalog import MODEL_CATALOG, ModelDefinition, get_model_definition
 
 
@@ -132,6 +132,8 @@ class SourceRoute:
     display_name: str
     priority: int
     tags: tuple[str, ...]
+    routing_priority: int
+    latency_class: str
 
     @classmethod
     def from_definition(cls, definition: DataSourceDefinition, priority: int) -> "SourceRoute":
@@ -140,6 +142,8 @@ class SourceRoute:
             definition.display_name,
             priority,
             tuple(sorted(tag.value for tag in definition.tags)),
+            definition.routing_priority,
+            definition.latency_class.value,
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -148,6 +152,8 @@ class SourceRoute:
             "display_name": self.display_name,
             "priority": self.priority,
             "tags": list(self.tags),
+            "routing_priority": self.routing_priority,
+            "latency_class": self.latency_class,
         }
 
 
@@ -253,17 +259,23 @@ def _route_sources(rule: ScenarioRule, market: Market) -> tuple[SourceRoute, ...
         for definition in DATA_SOURCE_CATALOG
         if _source_matches_rule(definition, rule, market)
     ]
-    by_name = {definition.name: definition for definition in eligible}
-    ordered: list[DataSourceDefinition] = []
-    for name in rule.preferred_sources:
-        if (definition := by_name.pop(name, None)) is not None:
-            ordered.append(definition)
-    ordered.extend(definition for definition in eligible if definition.name in by_name)
+    explicit_order = {name: index for index, name in enumerate(rule.preferred_sources)}
+    ordered = sorted(
+        eligible,
+        key=lambda definition: (
+            definition.routing_priority,
+            definition.latency_rank,
+            explicit_order.get(definition.name, len(explicit_order)),
+            definition.name,
+        ),
+    )
     return tuple(SourceRoute.from_definition(definition, index + 1) for index, definition in enumerate(ordered))
 
 
 def _source_matches_rule(definition: DataSourceDefinition, rule: ScenarioRule, market: Market) -> bool:
     required_tags = rule.required_source_tags | {_market_tag(market)}
+    if rule.requires_date_range:
+        required_tags = required_tags | {DataSourceTag.DATE_BOUNDED_HISTORICAL}
     if not required_tags.issubset(definition.tags):
         return False
     return not rule.any_source_tags or bool(rule.any_source_tags & definition.tags)
@@ -286,8 +298,10 @@ def catalog_snapshot() -> dict[str, object]:
                 "name": definition.name,
                 "display_name": definition.display_name,
                 "tags": sorted(tag.value for tag in definition.tags),
+                "routing_priority": definition.routing_priority,
+                "latency_class": definition.latency_class.value,
             }
-            for definition in DATA_SOURCE_CATALOG
+            for definition in ordered_data_sources()
             if definition.tags
         ],
         "models": [

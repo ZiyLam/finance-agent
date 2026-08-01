@@ -84,7 +84,7 @@ class SecurityAnalysisExecutionTests(unittest.TestCase):
 
         self.assertEqual(result.status, "complete")
         self.assertEqual(result.evidence[0].source, "baostock")
-        self.assertEqual(result.evidence[0].priority, 2)
+        self.assertEqual(result.evidence[0].priority, 4)
         self.assertIn("DATA_SOURCE_UNAVAILABLE", _risk_ids(result))
         self.assertIn("FALLBACK_SOURCE_USED", _risk_ids(result))
         self.assertNotIn("example-token-that-must-not-be-emitted", rendered)
@@ -116,7 +116,7 @@ class SecurityAnalysisExecutionTests(unittest.TestCase):
         self.assertEqual(result.status, "complete")
         self.assertEqual([record.source for record in result.evidence], ["aktools", "baostock"])
         self.assertNotIn("INSUFFICIENT_EVIDENCE", _risk_ids(result))
-        self.assertNotIn("FALLBACK_SOURCE_USED", _risk_ids(result))
+        self.assertIn("FALLBACK_SOURCE_USED", _risk_ids(result))
 
     def test_missing_tools_produce_incomplete_evidence_result(self) -> None:
         request = SecurityAnalysisRequest(

@@ -59,6 +59,7 @@ class QianfanModelClient:
         model: str = DEFAULT_QIANFAN_MODEL,
         timeout_seconds: float = 60.0,
         transport: Transport | None = None,
+        enabled: Callable[[], bool] | None = None,
     ) -> None:
         if not isinstance(api_key, str) or not api_key.strip():
             raise ValueError("Qianfan API key must not be blank")
@@ -70,6 +71,7 @@ class QianfanModelClient:
         self._model = model.strip()
         self._timeout_seconds = timeout_seconds
         self._transport = transport or self._urlopen
+        self._enabled = enabled or (lambda: True)
 
     def complete(
         self,
@@ -77,6 +79,13 @@ class QianfanModelClient:
         tools: Sequence[Tool],
     ) -> ModelResponse:
         """Request a structured response without exposing the API credential."""
+
+        try:
+            enabled = self._enabled()
+        except Exception:
+            enabled = False
+        if not enabled:
+            raise QianfanApiError("Qianfan is disabled in parameter settings.")
 
         request_payload = {
             "model": self._model,

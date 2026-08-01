@@ -1,272 +1,168 @@
 # Finance Agent
 
-一个不绑定模型供应商的 AI Agent 起始框架。当前版本提供可测试的核心闭环：消息记忆、模型客户端抽象、工具注册与执行、Agent 循环，以及可替换的命令行入口。
+Finance Agent 是一个面向个人金融研究的自然语言应用。它把模型的语言理解能力与受控的只读数据工具结合起来，输出带数据时点、风险提示、研究范围和证据限制的结果；它不交易、不下单，也不承诺收益。
 
-## 目录
+> 本文是项目的统一说明和学习入口：介绍项目目标、运行路径、各框架的职责与安全边界。Web、小程序、数据源和简历材料等文档只补充各自场景的操作或表述，不重复维护核心架构说明。
+
+## 从哪里开始
+
+初次了解项目时，建议按以下顺序阅读：
+
+1. 本文的“核心运行路径”和“框架职责”；
+2. [Web 工作台说明](web/README.md)，了解一次自然语言请求如何进入系统；
+3. [数据源与确定性研究参考](docs/data-sources.md)，了解数据证据、回退和运行命令；
+4. [微信小程序后端接入说明](docs/mini-program-backend.md)，仅在需要小程序/API 集成时阅读。
+
+## 核心运行路径
 
 ```text
-src/ai_agent/
-  agent.py          # Agent 编排循环与工具调用处理
-  config.py         # 环境变量配置
-  memory.py         # 对话上下文的窗口化记忆
-  messages.py       # 领域消息与模型响应类型
-  tools.py          # 工具协议、注册表与内置示例工具
-  providers/        # 模型供应商适配层
-  skills.py         # 项目本地 Skill 的加载与系统提示词组装
-  cli.py            # 本地交互入口
-skills/
-  financial-investment-analyst/  # 金融分析、风险提醒与研究性观点 Skill
-resources/                       # 项目本地数据源运行环境与缓存（不提交 Git）
-tests/              # 标准库 unittest 测试
+用户请求
+  → 输入限制与证券实体解析
+  → 专业版明确日期 / 多市场 / 多指数 / 研究指标：并行确定性指数研究
+  → 简单且唯一的证券：确定性快路径 / 结构化快照
+  → 开放或复杂的问题：LCEL 本地 RAG → LangChain / LangGraph Agent
+  → 受控的只读工具调用（如市场数据、可选 ima 知识库检索）
+  → 自然语言回答，或确定性研究报告 / JSON
 ```
+
+不是每个请求都要经过 LLM。能由明确规则、安全完成的证券查询和研究报告，会优先使用确定性路径，降低幻觉、成本和延迟；证券名称存在歧义时，系统展示候选项而不猜测标的。
+
+## 框架职责与边界
+
+| 层级 | 主要职责 | 不负责什么 |
+| --- | --- | --- |
+| 应用层 | 输入限制、实体解析、Web 会话、确定性快路径和报告路由 | 不让模型决定数据权限或伪造缺失事实 |
+| LCEL 本地 RAG | 取回应用维护的研究边界、场景和工具能力说明 | 不替代用户资料库，也不检索不受信任网页内容 |
+| LangChain + LangGraph | 编排“模型选择工具 → 工具执行 → 结果回传 → 再决策”的循环 | 不是模型提供方、数据源或长期记忆系统 |
+| 模型适配层 | 将 Codex CLI、千帆等接入统一消息与 Tool-calling 协议 | 不直接执行外部数据源或保存业务凭据 |
+| 金融分析 Skill | 向模型提供研究口径、证据和风险提示等领域约束 | 不授予新权限，也不替代数据证据 |
+| `ToolRegistry` | 唯一工具执行边界：参数校验、只读约束和错误脱敏 | 不允许绕过注册表调用数据源 |
+| `ConversationMemory` | 保存当前会话的有限消息窗口 | 不是持久化记忆；服务重启或会话过期后会清除 |
+| 确定性研究模块 | 制定数据源回退计划、保留证据和生成结构化报告 | 不由 LLM 自由补全数据或直接给出投资指令 |
+
+当前 Agent 最多进行 5 轮工具调用。会话历史保存用户、助手和工具消息；教学图中常见的 “Thinking” 是帮助理解的抽象，不应视为会被保存或向用户输出的原始思维链。
+
+## 知识、记忆与数据的区别
+
+- **会话记忆**：当前对话的短期上下文，默认保留 20 条消息窗口；Web 会话默认空闲 30 分钟失效，最多缓存 50 个会话。
+- **本地 RAG**：应用内、可审阅的运行说明，用于告知 Agent 研究边界和工具能力；它不是外部知识库的替代品。
+- **腾讯 ima 知识库（可选）**：作为显式的只读 `ima_knowledge_search` 工具接入私有资料。配置客户端凭据与知识库 ID，或以精确名称选择知识库；名称在首次检索时解析，启动时不会访问 ima。结果仅返回受限标题和摘要，重要结论仍须与公司披露、监管文件等一级来源交叉核验。
+- **行情数据**：通过已注册的只读工具访问；来源、采集时间、失败记录和限制会留在确定性研究结果中。
+
+模型、数据源和所有凭据只在服务端或本机安全存储中使用。令牌不应写入 Git、前端代码或文档。
 
 ## 快速开始
 
-需要 Python 3.11 或更高版本：
+需要 Python 3.11 或更高版本。当前 Windows 开发环境共享 `G:\Program Files\Codex\.venv`：
 
 ```powershell
 cd 'G:\Program Files\Codex\finance-agent'
-& 'G:\Program Files\Python314\python.exe' -m venv 'resources\data-source-runtime'
-.\resources\data-source-runtime\Scripts\Activate.ps1
-$env:PIP_CACHE_DIR = 'G:\Program Files\Codex\finance-agent\resources\cache\pip'
-python -m pip install --upgrade pip
-python -m pip install -e .
+& 'G:\Program Files\Codex\.venv\Scripts\python.exe' -m pip install -e .
+
+# 本地对话入口（默认使用已登录的 Codex CLI）
 .\resources\finance-agent.ps1
+
+# Web 研究工作台
+finance-agent-api
+# 浏览器访问 http://127.0.0.1:8000/web/
 ```
 
-## 自测模型：本机 Codex CLI
+默认服务仅绑定 `127.0.0.1`。如需远程访问，必须设置高强度的 `AGENT_WEB_ACCESS_TOKEN`，且不要把它提交到 Git。Web 界面必须通过 FastAPI 托管访问，不能直接双击 `web/index.html`。
 
-当前默认模型提供方为 `codex`。它通过本机已登录的 Codex CLI 调用该 CLI 当前配置的模型，不需要把 Codex 登录信息或 API Key 写入项目。每轮 Agent 调用均使用临时 `codex exec` 会话、只读沙箱和“永不审批”策略；它只能通过结构化输出请求本项目已注册的数据工具。
+研究工作台默认使用精简版自然语言输入；切换到专业版后，可明确选择日期区间、A 股、港股、美股、日本和欧洲市场，以及多个指数和研究指标。指数目录包含上证指数、沪深 300、恒生指数、标普 500、纳斯达克综合指数、纳斯达克 100、道琼斯、罗素 2000、日经 225、富时 100、DAX 与 CAC 40 等常用基准；直接勾选指数会自动启用所属市场。专业版多指数请求走确定性并行链路，不调用 LLM；每个指数的行情类指标共用一次日线读取，只选择静态风格或风险时不访问行情数据源。
 
-确保本机已完成 Codex 登录后，直接运行：
+参数配置页 `/web/sources.html` 将行情数据源与 LLM 提供方分为两个模块，并将“令牌是否配置”和“实际连通状态”分开显示；千帆及未来模型统一归入 LLM 模块。连通测试仅在手动点击后执行最小只读请求；远端失败会以红色标记，并保留检查时间和耗时。批量测试最多并发 4 个来源，默认每项等待 4 秒，可通过 `AGENT_SOURCE_CHECK_MAX_PARALLEL` 和 `AGENT_SOURCE_CHECK_TIMEOUT_SECONDS` 调整。
 
-```powershell
-.\resources\finance-agent.ps1
-```
+### 模型与测试
 
-## 微信小程序后端（开发版）
-
-项目现包含 `miniapp/` 原生微信小程序客户端和 `src/ai_agent/api/` 的 FastAPI 服务边界。小程序只负责微信登录、对话、澄清和报告展示；模型、行情源与全部凭据只可在服务端使用。
-
-```powershell
-$env:AGENT_SESSION_SECRET = '至少 32 个字符的随机服务端密钥'
-$env:WECHAT_APP_ID = '你的微信小程序 AppID'
-$env:WECHAT_APP_SECRET = '只存放在服务端的 AppSecret'
-python -m ai_agent.api.server
-```
-
-当前 API 的存储、队列、缓存与限流实现仅适用于单进程开发，不能直接用于公网或多实例部署。生产替换清单、接口契约和微信联调前置条件见 [微信小程序后端接入说明](docs/mini-program-backend.md)。
-
-若想在本次自测中指定 CLI 支持的模型标识，可设置 `AGENT_MODEL`；留空则遵循本机 Codex CLI 的默认选择。可用 `AGENT_CODEX_TIMEOUT_SECONDS` 调整单轮等待上限，默认 120 秒。若要完全离线地检查 Agent 框架，可显式切换回回显模型：
-
-```powershell
-$env:AGENT_PROVIDER = 'echo'
-.\resources\finance-agent.ps1
-```
-
-Codex CLI 适配器仅用于当前自测阶段。正式部署建议改为独立、可审计的模型 API 提供方，而不是复用交互式 Codex 登录态。
-
-## 可切换模型：百度智能云千帆
-
-已接入百度智能云千帆的 OpenAI 兼容聊天接口。默认模型仍为 `codex`；只有显式设置 `AGENT_PROVIDER=qianfan` 才会使用千帆。凭证通过 Windows DPAPI 保存在当前 Windows 用户的本机加密存储中，项目、Git 与示例环境文件中均不保存真实 API Key。
-
-```powershell
-finance-agent source set-token qianfan
-$env:AGENT_PROVIDER = 'qianfan'
-# 可按千帆账号已授权的模型调整；未设置时为 ernie-4.5-turbo-32k
-$env:AGENT_MODEL = 'ernie-4.5-turbo-32k'
-.\resources\finance-agent.ps1
-```
-
-`AGENT_QIANFAN_TIMEOUT_SECONDS` 可调整单轮请求超时，默认 60 秒。若当前千帆账号未获默认模型授权，请设置 `AGENT_MODEL` 为账号已获授权的模型标识。千帆适配器仅能请求本项目已注册的只读本地数据工具；它不会执行交易、下单或输出收益保证。
-
-启动时，CLI 会自动加载项目根目录 `skills/*/SKILL.md` 中经审阅的 Skill，并把它们加入系统提示词。当前已内置金融分析 Skill；它要求模型标注数据时点和证据、输出风险情景，且不执行交易或提供保证收益的个性化荐股。
-
-## 接入真实模型
-
-1. 在 `src/ai_agent/providers/` 新建供应商适配器，并实现 `ModelClient.complete()`。
-2. 将适配器注入 `Agent`，或在后续的应用组合层中按 `AGENT_PROVIDER` 选择适配器。
-3. 通过实现 `Tool` 协议添加业务工具；工具应在自己的边界内完成鉴权、输入校验和审计。
-
-## 场景标签与确定性研究路由
-
-每个已接入数据源都按其当前适配器实际暴露的能力标记，例如 `a_share`、`global_markets`、`realtime_quote`、`end_of_day_quote`、`historical_ohlcv`、`symbol_search` 与 `valuation_metrics`。模型也会标记 `financial_research`、`structured_response`、`agent_tool_protocol`、`chinese` 等能力。标签是路由条件，不是对数据时效、授权范围或准确性的额外承诺。
-
-`SecurityAnalysisRequest` 是单标的研究的标准输入契约：`symbol`、`market`、`scenario`，以及历史场景必须提供的 `start_date`/`end_date`。它会产生 `security-analysis-plan/v1`：固定主数据源、回退顺序、兼容模型与必填证据/风险字段。该规划过程不读取凭证、不访问网络，也不会执行交易。
-
-查看全部标签和可用场景：
-
-```powershell
-finance-agent route catalog
-finance-agent route scenarios
-```
-
-生成 A 股历史行情分析计划：
-
-```powershell
-finance-agent route plan a_share_price_history a_share 600000 codex 2026-01-01 2026-01-31
-```
-
-首版场景包括证券检索、A 股实时行情、全球市场快照、A 股/全球历史行情、A 股估值快照、跨源历史验证和研究简报。路由优先级由代码维护，例如 A 股历史优先 AkTools、再回退 BaoStock 与 AllTick；全球历史优先 EODHD、再回退 yfinance、Alpha Vantage 与 AllTick。
-
-执行一个只读数据分析计划：
-
-```powershell
-.\resources\finance-agent.ps1 analyze a_share_price_history a_share 600000 2026-01-01 2026-01-31
-```
-
-该命令只调用计划中的本地数据工具，输出 `security-analysis-result/v1` JSON：主/回退来源、原始工具名、采集时间、来源时间戳、时效标签、失败记录和风险标记都会保留。它不调用 LLM，不会交易，也不会形成最终投资建议；模型叙述层将在后续阶段读取这份带证据的结果。对于无法保证精确历史日期范围或代码映射的适配器，执行器会安全记录失败并继续使用计划内回退源，绝不会猜测、填充或伪造数据。
-
-生成单标的市场数据研究报告：
-
-```powershell
-.\resources\finance-agent.ps1 report a_share 600000 2026-01-01 2026-01-31
-```
-
-`report` 会先执行 `cross_source_history_validation` 路由，要求两份历史行情证据后再生成 `security-research-report/v1`。报告包含区间收益、最高/最低价、最大回撤、年化波动率、同日跨源收盘价核验、基本/建设性/压力情景、风险提醒、局限与下一步研究动作，同时附带可直接阅读的 `report_markdown`。指标均从返回的历史行情计算；没有可用价格序列或未达到双源要求时，会明确降低信心或拒绝形成价格结论。
-
-当前报告是“市场数据研究报告”，不是完整公司基本面覆盖：所有已接入行情数据按 B 级第三方/公共市场证据处理，报告会固定提示缺少财报、公告、监管披露、币种/交易所与复权口径核验，因此信心等级最高为“中”。它不调用 LLM，避免未经证据约束的叙述；后续可在此证据契约之上增加受引用约束的模型文字层。
-
-## AllTick 行情数据
-
-内置 `ai_agent.market_data.AllTickClient`，按 AllTick HTTP 文档封装了：
-
-- 批量最新成交价：`/trade-tick`；
-- 单标的历史 K 线：`/kline`；
-- 股票（A/港/美股）与外汇、加密货币、商品等的不同 API 路径；
-- URL 编码的 `query`、唯一 `trace`、`ret/msg/trace` 错误处理；
-- 免费套餐的本地保护限流：10 秒间隔、每分钟 10 次、每天 1000 次，最新价每次最多 5 个代码。
-
-令牌维护入口（推荐，输入不会回显）：
-
-```powershell
-finance-agent source set-token alltick
-finance-agent source set-token alphavantage
-finance-agent source set-token eodhd
-finance-agent source set-token biying
-finance-agent source status
-finance-agent source delete-token biying
-```
-
-每个已接入的数据源均保留 `set-token`、`status` 与 `delete-token` 维护入口，包括当前不需要鉴权的 AkTools、BaoStock 和 yfinance。后者的维护项仅用于将来服务变更或操作者自行备忘，当前适配器不会读取或发送其中的值；状态命令会明确标示这一点。
-
-设置命令会用 Windows DPAPI 对令牌加密，并保存到当前 Windows 用户的本地应用数据目录；令牌绝不会写入项目、`.env.example` 或 Git。环境变量仍适用于临时会话和部署，并优先于安全存储：
-
-```powershell
-$env:ALLTICK_API_TOKEN = '在此设置你自己的令牌'
-finance-agent
-```
-
-设置变量后，CLI 会额外注册 `alltick_market_data` 工具。它支持 `latest_quotes` 与 `historical_candles` 两种只读动作，供真实模型适配器调用；默认 Echo 模型不会发起网络请求。
-
-## 后续数据源扩展入口
-
-后续数据源的凭证维护统一由 [data_sources.py](src/ai_agent/data_sources.py) 管理。新增一个 `DataSourceDefinition` 后，`finance-agent source list`、`source status`、`source set-token` 与 `source delete-token` 会自动识别该名称；该条目需定义显示名称、环境变量名，以及当前适配器是否实际使用凭证。随后再独立实现数据客户端、输入校验、限流、工具注册、测试与金融 Skill 的数据口径说明。这样，单纯保存未来凭证不会意外触发网络请求或使 Agent 使用未实现的数据源。
-
-```powershell
-finance-agent source list
-```
-
-## 必盈 API 数据
-
-内置 `ai_agent.market_data.BiyingClient`，封装了必盈 API 的沪深 A 股股票代码检索和“实时交易（公开数据）”接口。它通过 `biying_market_data` 提供 `find_stocks`（最多 20 条匹配）与 `realtime_quote` 两种只读动作，返回价格、涨跌幅、成交量、动态市盈率、市净率及接口返回的更新时间。
-
-必盈证书同样通过 `finance-agent source set-token biying` 加密保存，或用临时变量 `BIYING_API_LICENCE` 覆盖。默认本地限流为 0.2 秒间隔、每分钟 300 次、每天 100 次；每日上限采用文档中心免费版的保守值，确认你的证书套餐后再调整。
-
-## AkTools / AKShare 数据
-
-AkTools 不是托管的免鉴权行情 API；它是把 AKShare 函数封装成 HTTP 服务的开源工具。因此本项目无需、也不会保存 AkTools Token，但使用前需要由你在本机或自己的容器环境启动服务。按照 [AkTools 官方文档](https://aktools.akfamily.xyz/aktools/) 可任选一种方式：
-
-```powershell
-python -m pip install aktools
-python -m aktools
-```
-
-或使用文档示例镜像：
-
-```powershell
-docker run -p 8080:8080 registry.cn-shanghai.aliyuncs.com/akfamily/aktools:1.8.95
-```
-
-默认服务地址是 `http://127.0.0.1:8080`。如果服务部署在其他受你控制的地址，在启动 Agent 前设置：
-
-```powershell
-$env:AKTOOLS_BASE_URL = 'http://127.0.0.1:8080'
-finance-agent source status aktools
-finance-agent source check aktools
-finance-agent
-```
-
-Agent 启动不会探测网络，而是始终注册只读的 `aktools_market_data` 工具；所以 AkTools 尚未运行并不会影响 AllTick 或必盈。`finance-agent source check aktools` 只读取并显示运行中服务的当前 AkTools 版本；是否升级由使用者决定。首次调用失败时，工具会提示启动本地服务。当前封装了文档的 `stock_zh_a_hist`：传入 6 位沪深 A 股代码、`YYYYMMDD` 日期区间、`daily`/`weekly`/`monthly` 周期，以及 `qfq`（前复权）或 `hfq`（后复权）。为了不挤占模型上下文，工具最多返回最近 120 根 K 线；完整区间行数会一并标明。
-
-## BaoStock 数据
-
-项目依赖官方 `baostock` Python 包，并以匿名会话按其文档执行 `login()`、`query_history_k_data_plus()` 和 `logout()`；不需要 API Token，也不会保存账号密码。`baostock_market_data` 当前提供 A 股日/周/月历史 K 线：代码使用 BaoStock 格式（如 `sh.600000`、`sz.000001`），日期为 `YYYY-MM-DD`，频率使用 `d`、`w` 或 `m`，复权参数使用官方 `adjustflag`：`1` 后复权、`2` 前复权、`3` 不复权。
-
-BaoStock 公布的限制为同一 IP 每日不超过 50,000 次访问；本项目默认采用每进程 5,000 次/日和 0.1 秒最小间隔的本地保护值，以便为同 IP 的其他研究或手工查询预留余量。可用下列命令确认其无 Token 配置状态：
-
-```powershell
-finance-agent source status baostock
-```
-
-## Alpha Vantage 数据
-
-项目内置 `alphavantage_market_data`，使用 Alpha Vantage 官方 HTTP API 提供三种只读操作：`daily_candles`（全球股票原始日线 OHLCV）、`global_quote`（单标的最新报价）与 `symbol_search`（代码/公司搜索）。日线固定使用官方免费密钥可用的 `TIME_SERIES_DAILY` + `outputsize=compact`，因此单次最多返回最近 100 根，不包含复权价格、分红或拆股事件；如需这些数据，应改用具备相应权限的来源并标注口径。
-
-密钥通过以下入口加密保存，或以临时环境变量 `ALPHAVANTAGE_API_KEY` 覆盖；它不会被写进项目、`.env.example` 或 Git：
-
-```powershell
-finance-agent source set-token alphavantage
-finance-agent source status alphavantage
-```
-
-根据 Alpha Vantage 官方文档，免费服务上限为每天 25 次请求。本项目额外采用每进程每天 25 次、最小 15 秒间隔的本地保护；不要绕过该限制。免费 `GLOBAL_QUOTE` 默认是每日收盘后更新的数据，不能表述为实时或 15 分钟延迟美国行情；后两者需要提供商授权。所有 Alpha Vantage 数据只能用于研究核验，不构成交易指令或收益承诺。
-
-## EOD Historical Data（EODHD）数据
-
-`eodhd_market_data` 通过 EODHD 官方 REST API 提供全球标的的日/周/月历史 OHLCV（`historical_candles`）和活跃标的检索（`search`）。历史查询须使用 EODHD 的交易所后缀代码，例如 `AAPL.US`、`0700.HK`、`EURUSD.FOREX` 或 `BTC-USD.CC`；输入日期为 `YYYY-MM-DD`，周期为 `d`、`w` 或 `m`。每项查询最多向模型返回最近 120 根，但响应始终标示完整返回行数。
-
-EODHD 免费计划文档列出每天 20 次 API 调用，且历史数据仅限最近一年。本项目按每进程每天 20 次、最小 3 秒间隔设置本地保护；套餐权限或时间范围不足时，工具会返回错误而不会猜测或补齐数据。历史字段可能包含 `adjusted_close`，但必须按响应实际字段理解，不能把数据描述为交易所实时成交；EODHD 也明确说明其数据并非当然实时或准确，不能作为自动交易或个性化投资结论的唯一依据。
-
-使用以下命令加密保存或维护凭证：
-
-```powershell
-finance-agent source set-token eodhd
-finance-agent source status eodhd
-```
-
-## yfinance / Yahoo Finance 数据
-
-项目依赖官方 `yfinance` Python 包，并通过 `yfinance_market_data` 提供单标的日/周/月历史 OHLCV 数据。它不需要 Token；Yahoo 代码示例包括 `AAPL`、`0700.HK`、`600000.SS`、`^GSPC` 和 `BTC-USD`。输入 `start_date` 与 `end_date` 采用 `YYYY-MM-DD`，其中 yfinance 遵循 Yahoo 的约定：`end_date` 为排他上界；要包含某日的日线时，应传入下一日作为 `end_date`。
-
-yfinance 官方文档说明它是对 Yahoo 公开 API 的开源封装，Yahoo 数据仅限个人研究与教育用途。该数据源只能用于核验历史价格、成交量和调整口径，不能视为实时行情、交易所原始数据或可再分发的数据。为避免触发未公开的 Yahoo 限制，项目默认设置每进程 1,000 次/日与 0.5 秒最小间隔的本地保护值。
-
-如需将 yfinance 的时区和 Cookie 缓存保存在指定位置，可设置 `YFINANCE_CACHE_DIR`。当前 Windows 安装建议设为 `G:\Program Files\Codex\finance-agent\resources\cache\yfinance`，避免默认写入用户配置目录。
-
-```powershell
-finance-agent source status yfinance
-```
-
-可选环境变量：
-
-```text
-AGENT_PROVIDER=codex
-AGENT_MODEL=
-AGENT_CODEX_TIMEOUT_SECONDS=120
-AGENT_SYSTEM_PROMPT=You are a helpful AI agent.
-AGENT_MEMORY_WINDOW=20
-AKTOOLS_BASE_URL=http://127.0.0.1:8080
-```
-
-## 验证
+- 默认提供方为 `codex`，复用本机已登录的 Codex CLI，适合个人自测；正式多用户部署应改用独立、可审计的模型 API。
+- 也可设置 `AGENT_PROVIDER=qianfan` 使用已接入的千帆兼容接口；凭据通过 Windows DPAPI 安全存储或临时环境变量提供。
+- 将 `AGENT_PROVIDER=echo` 后运行 CLI，可在不访问模型的情况下检查 Agent 框架。
 
 ```powershell
 $env:PYTHONPATH = 'src'
 python -m unittest discover -s tests -v
 ```
 
-## 下一步建议
+`pyproject.toml` 将 LangChain 限制在 `>=1.3,<2.0`：保证项目所用的 1.x API 可用，同时避免未验证的 2.0 破坏性更新。
 
-- 选择模型供应商，并实现其流式响应和工具调用适配器。
-- 增加持久化会话/长期记忆与用户身份边界。
-- 为每个具有副作用的工具补充权限策略、结构化日志和集成测试。
+### 服务端诊断日志
+
+通过 `finance-agent-api` 启动后，服务会输出 JSON Lines 诊断日志。默认位置为 `%LOCALAPPDATA%\FinanceAgent\logs\finance-agent.jsonl`，单个文件最大 5 MB，保留 3 个轮转副本；可用 `AGENT_LOG_DIR` 指定其他受控目录，并用 `AGENT_LOG_LEVEL` 设为 `DEBUG`、`INFO`、`WARNING` 或 `ERROR`。
+
+日志覆盖 HTTP 请求、RAG、实体解析、模型调用、LangGraph 工具循环、工具执行和数据源回退。每条 API 请求都有 `X-Request-ID` 可与日志关联；日志不记录用户问题原文、Prompt、工具参数/返回值、异常原文或令牌。
+
+```powershell
+Get-Content "$env:LOCALAPPDATA\FinanceAgent\logs\finance-agent.jsonl" -Tail 100
+```
+
+## 数据源与确定性报告
+
+项目可按场景选择和回退数据源，例如 AkTools、TickFlow、智兔数服、BaoStock、AllTick、必盈、Alpha Vantage、EODHD 和 yfinance。数据源能力是路由条件，不代表实时性、授权范围或准确性的额外承诺。每个来源还维护粗粒度的延迟分类和路由优先级：同一研究能力下优先调用低延迟、较高优先级的来源；实际耗时以服务端 `tool_execution_*` 日志的 `duration_ms` 为准，而不是该分类的承诺。
+
+```powershell
+# 查看已知来源与配置状态
+finance-agent source list
+finance-agent source status
+
+# 浏览路由能力；以下命令只生成计划，不访问网络
+finance-agent route catalog
+finance-agent route scenarios
+finance-agent route plan a_share_price_history a_share 600000 codex 2026-01-01 2026-01-31
+
+# 执行只读分析或生成市场数据研究报告
+.\resources\finance-agent.ps1 analyze a_share_price_history a_share 600000 2026-01-01 2026-01-31
+.\resources\finance-agent.ps1 report a_share 600000 2026-01-01 2026-01-31
+```
+
+研究报告基于实际返回的价格序列和跨源核验生成，不能替代完整公司基本面研究。没有满足证据要求时，系统会降低信心或拒绝形成结论，而不是补造数据。各来源的权限、速率、代码格式和使用限制见 [数据源与确定性研究参考](docs/data-sources.md)。
+
+## 目录导览
+
+```text
+src/ai_agent/
+  application/    用例编排、实体解析、确定性快路径与 Web 会话
+    index_catalog.py  经复核的指数静态目录；统一按 key 维护
+    index_research.py 指数解析与研究主干，不承载大段静态资料
+    web_workspace.py        Web 会话、快速路径与知识检索入口
+    professional_research.py 专业版多指数并行研究编排
+    web_report.py           确定性报告与可选模型解说
+  langchain/      LangChain/LangGraph Agent、RAG、消息记忆与工具适配
+  providers/      模型提供方适配
+  market_data/    行情数据客户端
+  knowledge_base/ ima 知识库客户端与只读检索
+  data_sources.py 数据源/LLM 提供方目录、优先级与启用配置
+  tooling/        工具核心、行情适配器与知识库适配器
+  tools.py        保留旧导入路径的薄兼容门面
+  api/
+    app.py                 FastAPI 装配、中间件与健康检查
+    web_routes.py          Web 工作台和数据源配置路由
+    mini_program_routes.py 微信小程序路由
+web/              FastAPI 托管的 Web 前端
+  app.js           页面启动与请求编排
+  api-client.js    同源 API 客户端
+  research-form.js 精简/专业研究表单
+  result-renderer.js 研究结果渲染与 Markdown 导出
+miniapp/          微信小程序客户端
+docs/             场景化补充说明
+tests/            自动化测试
+```
+
+## 补充文档
+
+| 文档 | 适用场景 |
+| --- | --- |
+| [Web 工作台](web/README.md) | 启动 Web、了解页面请求链路与本地访问控制 |
+| [数据源与确定性研究](docs/data-sources.md) | 配置来源、理解路由、报告证据与各数据源限制 |
+| [微信小程序后端](docs/mini-program-backend.md) | API 契约、微信登录与生产部署缺口 |
+| [微信小程序客户端](miniapp/README.md) | 导入小程序工程、设置后端 HTTPS 地址 |
+| [共享运行环境](resources/README.md) | 本机运行环境和数据源运行目录 |
+| [项目亮点（简历版）](docs/interview-finance-agent.md) | 面试、简历和项目复盘表述 |
+| [工程验证基线](docs/verification.md) | 测试分类、性能基线、风险覆盖与部署前缺口 |
+| [跨项目代码质量准则](../knowledge-base/standards/code-quality-principles.md) | 六项基础原则、外部接口隔离、体量审查与合并检查清单 |
+
+## 当前限制
+
+- 数据源和模型权限、时效性受各提供方套餐与网络状态限制；结果应保留来源和时间口径。
+- Web 会话与默认 API 存储、队列、缓存和限流仅适合单进程开发，不可直接作为公网多实例部署方案。
+- 财报、公告、监管披露等完整基本面证据尚未构成基础行情快照的一部分；系统应明确提示未接入，而非给出未经证据支持的结论。
