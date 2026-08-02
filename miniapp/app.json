@@ -6,13 +6,13 @@
   ],
   "window": {
     "navigationBarTitleText": "投研助手",
-    "navigationBarBackgroundColor": "#0f172a",
+    "navigationBarBackgroundColor": "#172554",
     "navigationBarTextStyle": "white",
-    "backgroundColor": "#f8fafc"
+    "backgroundColor": "#f5f7fb"
   },
   "tabBar": {
-    "color": "#64748b",
-    "selectedColor": "#0f766e",
+    "color": "#69738a",
+    "selectedColor": "#258460",
     "list": [
       {
         "pagePath": "pages/research/index",

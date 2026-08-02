@@ -15,6 +15,7 @@ $env:PYTHONPATH = 'src'
 & 'G:\Program Files\Codex\.venv\Scripts\python.exe' scripts/measure_fast_path.py --iterations 50
 node --test tests/test_web_api_client.js
 & 'G:\Program Files\Codex\.venv\Scripts\python.exe' scripts/export_openapi.py --output "$env:TEMP\finance-agent-openapi.json"
+& 'G:\Program Files\Codex\.venv\Scripts\python.exe' scripts/generate_design_tokens.py --check
 ```
 
 The local Web entry is `finance-agent-api` followed by
@@ -23,8 +24,8 @@ personal-only deployment limits are in [mini-program-backend.md](mini-program-ba
 API-only mode, strict CORS, and independent Web URL resolution are covered by
 `test_api_deployment.py` and `test_web_api_client.js`.
 
-Current suite result: **203 Python tests passed in 7.133 seconds**, plus **4
-JavaScript tests passed in 0.421 seconds**, on 2026-08-02.
+Current suite result: **205 Python tests passed in 6.582 seconds**, plus **4
+JavaScript tests passed in 0.425 seconds**, on 2026-08-02.
 
 ## Automated-test classification and risk coverage
 
@@ -33,6 +34,7 @@ JavaScript tests passed in 0.421 seconds**, on 2026-08-02.
 | Unit | `test_input_parser.py`, `test_entity_resolution.py`, adapter tests, `test_tools.py` | input limits, invalid/missing dates, unknown tools, provider gating, safe error redaction |
 | Integration | `test_api.py`, `test_research_service.py`, `test_web_workspace.py`, `test_langchain_integration.py` | user/session ownership, clarification before queueing, deterministic report path, Web/API wiring |
 | Deployment contract | `test_api_deployment.py`, `test_web_api_client.js`, `scripts/export_openapi.py` | API-only startup, static-host compatibility, strict CORS, independent API URL resolution, OpenAPI export |
+| Cross-client UI contract | `test_design_tokens.py`, `scripts/generate_design_tokens.py` | generated Web/WXSS variables, mini-program navigation colors, and prevention of copied shared values |
 | Regression | `test_analysis_execution.py`, `test_research_report.py`, `test_beginner_research.py`, `test_source_connectivity.py` | evidence provenance, source fallback, unavailable/malformed data, stale local-service state, source timeouts |
 | Performance | `test_performance.py`, `scripts/measure_fast_path.py` | deterministic fast path, bounded timeout return, and identical in-flight request coalescing |
 

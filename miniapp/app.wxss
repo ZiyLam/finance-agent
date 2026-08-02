@@ -1,7 +1,9 @@
+@import "./styles/design-tokens.wxss";
+
 page {
   min-height: 100%;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--canvas);
+  color: var(--ink);
   font-size: 28rpx;
 }
 
@@ -12,7 +14,7 @@ button {
 .card {
   margin: 24rpx;
   padding: 28rpx;
-  background: #ffffff;
+  background: var(--paper);
   border-radius: 18rpx;
   box-shadow: 0 8rpx 30rpx rgba(15, 23, 42, 0.06);
 }

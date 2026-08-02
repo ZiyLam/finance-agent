@@ -10,7 +10,7 @@
 
 .meta {
   margin-top: 12rpx;
-  color: #64748b;
+  color: var(--muted);
   font-size: 25rpx;
 }
 
@@ -18,18 +18,18 @@
 .risk {
   margin-top: 18rpx;
   padding-top: 18rpx;
-  border-top: 1rpx solid #e2e8f0;
+  border-top: 1rpx solid var(--line);
 }
 
 .risk {
-  color: #92400e;
+  color: var(--warning-strong);
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--danger);
 }
 
 .disclaimer {
-  color: #64748b;
+  color: var(--muted);
   font-size: 24rpx;
 }

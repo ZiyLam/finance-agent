@@ -69,6 +69,8 @@ finance-agent-api
 
 项目已经按部署边界拆开：浏览器只通过 HTTP API 使用后端，后端不导入前端代码。开发环境默认由 FastAPI 在 `/web/` 托管静态文件；独立部署时，将 `AGENT_SERVE_WEB=false`，在 `web/runtime-config.js` 配置后端地址，并把前端的精确 Origin 加入 `AGENT_WEB_ALLOWED_ORIGINS`。OpenAPI 是前后端契约，可通过 `python scripts/export_openapi.py --output <文件>` 导出；Vue 或 uni-app 迁移应基于该契约生成客户端，而不是复制请求代码。
 
+Web 与原生小程序不直接共用页面 CSS：二者的布局单位、组件和交互模型不同。适合共享的颜色由 `frontend/design-tokens.json` 统一维护，并生成 Web CSS 变量、WXSS 变量和小程序导航色；布局与字号继续按平台维护。修改令牌后运行 `python scripts/generate_design_tokens.py`，提交前以 `--check` 检查生成文件是否同步。
+
 默认服务仅绑定 `127.0.0.1`。跨主机访问还必须设置高强度 `AGENT_WEB_ACCESS_TOKEN`，且不要提交到 Git；CORS 只接受显式的 HTTP(S) Origin，不接受 `*`。远程参数页仍禁止维护或回显数据源凭据。
 
 研究工作台默认使用精简版自然语言输入；切换到专业版后，可明确选择日期区间、A 股、港股、美股、日本和欧洲市场，以及多个指数和研究指标。指数目录包含上证指数、沪深 300、恒生指数、标普 500、纳斯达克综合指数、纳斯达克 100、道琼斯、罗素 2000、日经 225、富时 100、DAX 与 CAC 40 等常用基准；直接勾选指数会自动启用所属市场。专业版多指数请求走确定性并行链路，不调用 LLM；每个指数的行情类指标共用一次日线读取，只选择静态风格或风险时不访问行情数据源。
@@ -147,6 +149,7 @@ web/              可由 FastAPI 托管、也可独立部署的 Web 前端
   research-form.js 精简/专业研究表单
   result-renderer.js 研究结果渲染与 Markdown 导出
 miniapp/          微信小程序客户端
+frontend/         跨端设计令牌与共用边界说明
 docs/             场景化补充说明
 tests/            自动化测试
 ```
@@ -159,6 +162,7 @@ tests/            自动化测试
 | [数据源与确定性研究](docs/data-sources.md) | 配置来源、理解路由、报告证据与各数据源限制 |
 | [微信小程序后端](docs/mini-program-backend.md) | API 契约、微信登录与生产部署缺口 |
 | [微信小程序客户端](miniapp/README.md) | 导入小程序工程、设置后端 HTTPS 地址 |
+| [跨端前端共用层](frontend/README.md) | 设计令牌生成方式，以及 Web/小程序应共享和分别维护的边界 |
 | [共享运行环境](resources/README.md) | 本机运行环境和数据源运行目录 |
 | [项目亮点（简历版）](docs/interview-finance-agent.md) | 面试、简历和项目复盘表述 |
 | [工程验证基线](docs/verification.md) | 测试分类、性能基线、风险覆盖与部署前缺口 |

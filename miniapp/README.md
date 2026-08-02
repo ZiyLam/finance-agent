@@ -20,3 +20,14 @@
 在发布前，请替换占位域名、完成微信主体/域名/HTTPS 配置，并核验隐私政策、用户协议和数据源再分发许可。
 
 个人使用首版应在服务端设置 `AGENT_PERSONAL_MODE=true`，并用一次开发登录得到的不透明 `user_id` 配置 `AGENT_ALLOWED_USER_IDS`。这样即使其他微信用户拿到小程序，也不能取得会话 Token。
+
+## 跨端样式维护
+
+小程序从 `styles/design-tokens.wxss` 使用与 Web 一致的语义颜色；该文件以及 `app.json` 中的导航色由项目根目录的 `frontend/design-tokens.json` 生成。修改令牌后执行：
+
+```powershell
+python scripts/generate_design_tokens.py
+python scripts/generate_design_tokens.py --check
+```
+
+不要手工修改两个设计令牌样式输出；`app.json` 的页面与其他平台配置仍正常维护，四个颜色字段由生成器校准。小程序的 rpx 间距、原生组件状态和触控布局仍在各 WXSS 中维护，不与 Web 的 px/响应式布局强行共用。

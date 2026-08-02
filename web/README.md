@@ -35,6 +35,8 @@ AGENT_WEB_ACCESS_TOKEN=<高强度随机值>
 
 本地可分别启动 `python -m http.server --directory web 8011` 和端口 8010 的 API 进行联调。后端的 `/openapi.json` 以及 `python scripts/export_openapi.py --output <文件>` 是前端客户端的唯一接口契约。当前原生 Web 和小程序仍使用各自的视图代码；未来迁移 Vue/uni-app 时应复用生成的 API 类型与客户端，而不是强行共用页面样式文件。
 
+Web 的语义颜色来自 `../frontend/design-tokens.json` 生成的 `design-tokens.css`。修改跨端颜色时更新令牌源并运行 `python scripts/generate_design_tokens.py`，不要直接编辑生成文件；Web 响应式布局仍在 `styles.css` 独立维护。
+
 ## 运行链路
 
 ```text
