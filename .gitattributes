@@ -1,0 +1,3 @@
+# Keep scripts executed inside WSL/Linux compatible even when Git for Windows
+# uses core.autocrlf=true in the working tree.
+*.sh text eol=lf
