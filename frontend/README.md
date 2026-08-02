@@ -2,6 +2,8 @@
 
 该目录只维护 Web 与微信小程序真正适合共享的稳定输入。目前包括语义颜色令牌；API 契约仍以服务端 OpenAPI 为唯一事实源。
 
+微信小程序目前暂停功能开发，但不允许架构漂移。`test_frontend_contracts.py` 会确认两端各自只有一个网络请求网关，并验证现有调用仍属于服务端 OpenAPI；`test_design_tokens.py` 继续验证跨端颜色同步。
+
 修改 `design-tokens.json` 后执行：
 
 ```powershell
