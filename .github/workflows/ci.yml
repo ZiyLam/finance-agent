@@ -104,13 +104,9 @@ jobs:
             [void][scriptblock]::Create([IO.File]::ReadAllText($script))
           }
 
-      - name: Check command launchers
+      - name: Check tracked credential command launcher
         shell: pwsh
         run: |
-          cmd.exe /c .\start-local-staging.cmd --check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cmd.exe /c .\stop-local-staging.cmd --check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmd.exe /c .\sync-local-secrets.cmd --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
