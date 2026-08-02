@@ -1,14 +1,20 @@
 from __future__ import annotations
 
-from datetime import date
-from io import StringIO
 import json
 import logging
 import unittest
+from datetime import date
+from io import StringIO
 
 from ai_agent.application.beginner_research import BeginnerResearchService
 from ai_agent.application.entity_resolution import KWEICHOW_MOUTAI
-from ai_agent.observability import _JsonLineFormatter, bind_request_id, get_logger, log_event, reset_request_id
+from ai_agent.observability import (
+    _JsonLineFormatter,
+    bind_request_id,
+    get_logger,
+    log_event,
+    reset_request_id,
+)
 from ai_agent.tools import FunctionTool, ToolRegistry
 
 

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+import unittest
 from pathlib import Path
 from unittest.mock import patch
-import unittest
 
 from ai_agent.config import AgentSettings
 from ai_agent.messages import ChatMessage, MessageRole

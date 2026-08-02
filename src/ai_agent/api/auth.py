@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import base64
+import hmac
+import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
-import hmac
-import json
 from os import getenv
-from typing import Any, Callable, Protocol
+from typing import Callable, Protocol
 from urllib.parse import urlencode
 from urllib.request import urlopen
 

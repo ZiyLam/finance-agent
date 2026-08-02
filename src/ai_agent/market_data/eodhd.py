@@ -7,17 +7,16 @@ contain the request URL.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
-import json
 from time import monotonic
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
-
 
 EODHD_API_BASE = "https://eodhd.com/api"
 _PERIODS = {"d", "w", "m"}

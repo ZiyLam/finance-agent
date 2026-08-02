@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import date
 import json
+import unittest
+from datetime import date
 from threading import Event
 from time import perf_counter
-import unittest
 
 from ai_agent.application.beginner_research import BeginnerResearchService
 from ai_agent.application.entity_resolution import KWEICHOW_MOUTAI
@@ -36,9 +36,10 @@ class PerformanceRegressionTests(unittest.TestCase):
                 }
             )
 
-        registry_factory = lambda: ToolRegistry(
-            (FunctionTool("yfinance_market_data", "local performance fixture", market_data),)
-        )
+        def registry_factory() -> ToolRegistry:
+            return ToolRegistry(
+                (FunctionTool("yfinance_market_data", "local performance fixture", market_data),)
+            )
         beginner_research = BeginnerResearchService(
             tool_registry_factory=registry_factory,
             today=lambda: date(2026, 7, 22),
@@ -102,9 +103,10 @@ class PerformanceRegressionTests(unittest.TestCase):
                 }
             )
 
-        registry_factory = lambda: ToolRegistry(
-            (FunctionTool("yfinance_market_data", "index performance fixture", market_data),)
-        )
+        def registry_factory() -> ToolRegistry:
+            return ToolRegistry(
+                (FunctionTool("yfinance_market_data", "index performance fixture", market_data),)
+            )
         beginner_research = BeginnerResearchService(
             tool_registry_factory=registry_factory,
             today=lambda: date(2026, 7, 22),
@@ -136,9 +138,10 @@ class PerformanceRegressionTests(unittest.TestCase):
             release.wait(1)
             return "{}"
 
-        registry_factory = lambda: ToolRegistry(
-            (FunctionTool("yfinance_market_data", "blocked index fixture", blocked_market_data),)
-        )
+        def registry_factory() -> ToolRegistry:
+            return ToolRegistry(
+                (FunctionTool("yfinance_market_data", "blocked index fixture", blocked_market_data),)
+            )
         bounded_index_reader = BeginnerResearchService(
             tool_registry_factory=registry_factory,
             today=lambda: date(2026, 7, 22),
@@ -171,9 +174,10 @@ class PerformanceRegressionTests(unittest.TestCase):
             release.wait(1)
             return "{}"
 
-        registry_factory = lambda: ToolRegistry(
-            (FunctionTool("eastmoney_market_scan", "blocked sector fixture", blocked_market_scan),)
-        )
+        def registry_factory() -> ToolRegistry:
+            return ToolRegistry(
+                (FunctionTool("eastmoney_market_scan", "blocked sector fixture", blocked_market_scan),)
+            )
         workspace = WebWorkspaceService(
             tool_registry_factory=registry_factory,
             agent_factory=lambda: _UnexpectedAgent(),  # type: ignore[arg-type]

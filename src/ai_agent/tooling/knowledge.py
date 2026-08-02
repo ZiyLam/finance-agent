@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import json
-from typing import Any
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from .core import FunctionTool
+
+if TYPE_CHECKING:
+    from ..knowledge_base.ima import ImaKnowledgeBaseClient
 
 
 def create_ima_knowledge_search_tool(client: "ImaKnowledgeBaseClient") -> FunctionTool:

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
 import unittest
+from unittest.mock import patch
 from urllib.error import URLError
 from urllib.parse import parse_qs, urlsplit
 
@@ -10,8 +10,8 @@ from ai_agent.cli import run_source_command
 from ai_agent.market_data.aktools import (
     AkToolsClient,
     AkToolsLimits,
-    AkToolsTransportError,
     AkToolsServiceVersion,
+    AkToolsTransportError,
 )
 from ai_agent.tools import ToolRegistry, create_aktools_market_data_tool
 

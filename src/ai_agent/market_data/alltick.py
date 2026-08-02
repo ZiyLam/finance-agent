@@ -6,13 +6,13 @@ is never written to a file, included in exceptions, or emitted by this module.
 
 from __future__ import annotations
 
+import json
 from collections import deque
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from enum import IntEnum, StrEnum
-import json
 from os import getenv
 from time import monotonic
 from typing import Any
@@ -20,7 +20,6 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from uuid import uuid4
-
 
 STOCK_API_BASE = "https://quote.alltick.co/quote-stock-b-api"
 OTHER_API_BASE = "https://quote.alltick.co/quote-b-api"

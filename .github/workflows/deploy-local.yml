@@ -1,0 +1,41 @@
+name: Deploy local staging
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - finance-agent-local
+    environment: local-staging
+
+    steps:
+      - name: Check out the verified revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Deploy to WSL kind
+        run: |
+          export FINANCE_AGENT_LOCAL_SECRET_DIR="${HOME}/.local/share/finance-agent"
+          bash scripts/deploy_local_kind.sh

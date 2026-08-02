@@ -8,9 +8,9 @@ to ``never``.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-import json
 from os import name as operating_system_name
 from pathlib import Path
 from subprocess import CompletedProcess, TimeoutExpired, run

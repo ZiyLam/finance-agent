@@ -12,7 +12,6 @@ from io import StringIO
 from time import monotonic
 from typing import Any
 
-
 BAOSTOCK_DAILY_IP_LIMIT = 50_000
 
 

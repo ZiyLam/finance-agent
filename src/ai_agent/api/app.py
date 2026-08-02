@@ -24,7 +24,13 @@ from ..application.web_workspace import WebWorkspaceService
 from ..infrastructure.rate_limit import InMemoryRateLimiter
 from ..infrastructure.store import InMemoryApplicationStore
 from ..infrastructure.task_queue import InMemoryTaskQueue
-from ..observability import bind_request_id, elapsed_milliseconds, log_event, new_request_id, reset_request_id
+from ..observability import (
+    bind_request_id,
+    elapsed_milliseconds,
+    log_event,
+    new_request_id,
+    reset_request_id,
+)
 from ..tools import ToolRegistry
 from .auth import (
     AccessPolicy,
@@ -47,6 +53,18 @@ from .web_routes import (
     WebResearchPayload,
     create_web_router,
 )
+
+__all__ = [
+    "ConversationMessagePayload",
+    "SourceEnabledPayload",
+    "SourceTokenPayload",
+    "WebChatPayload",
+    "WebProfessionalResearchPayload",
+    "WebResearchPayload",
+    "WechatLoginPayload",
+    "create_app",
+    "create_development_components",
+]
 
 
 @dataclass(slots=True)

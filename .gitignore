@@ -11,6 +11,7 @@ dist/
 # Local environments and configuration
 .venv/
 .env
+.local/
 finance-agent-api-token-backup.txt
 resources/data-source-runtime/
 resources/cache/

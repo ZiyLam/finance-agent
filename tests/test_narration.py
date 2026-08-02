@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import unittest
 
 from ai_agent.application.narration import EvidenceBoundNarrator

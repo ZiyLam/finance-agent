@@ -13,10 +13,10 @@ from ..application.web_workspace import WebWorkspaceService
 from ..config import AgentSettings
 from ..langchain.agent import Agent
 from ..langchain.memory import ConversationMemory
+from ..provider_activation import ProviderActivationStore
 from ..providers.codex_cli import CodexCliModelClient
 from ..providers.echo import EchoModelClient
 from ..providers.qianfan import DEFAULT_QIANFAN_MODEL, QianfanModelClient
-from ..provider_activation import ProviderActivationStore
 from ..runtime import build_market_data_tool_registry
 from ..secrets import SecretStoreError, resolve_token
 from ..skills import compose_system_prompt, load_skills

@@ -8,8 +8,8 @@ from the project root with ``PYTHONPATH=src`` so the result is reproducible.
 from __future__ import annotations
 
 import argparse
-from datetime import date
 import json
+from datetime import date
 from math import ceil
 from threading import Event, Thread
 from time import monotonic
@@ -61,7 +61,10 @@ def _fast_path_timings(iterations: int) -> list[float]:
             }
         )
 
-    registry_factory = lambda: ToolRegistry((FunctionTool("yfinance_market_data", "benchmark fixture", market_data),))
+    def registry_factory() -> ToolRegistry:
+        return ToolRegistry(
+            (FunctionTool("yfinance_market_data", "benchmark fixture", market_data),)
+        )
     workspace = WebWorkspaceService(
         tool_registry_factory=registry_factory,
         agent_factory=_UnexpectedAgent,

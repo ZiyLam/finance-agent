@@ -22,7 +22,6 @@ from ..observability import log_event
 from ..provider_activation import ProviderActivationError, ProviderActivationStore
 from ..secrets import SecretStoreError, TokenStore, resolve_token
 
-
 SourceProbe = Callable[[str | None], None]
 
 

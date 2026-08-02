@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finance-agent-runtime
+  namespace: finance-agent-staging
+data:
+  AGENT_API_HOST: "0.0.0.0"
+  AGENT_API_PORT: "8000"
+  AGENT_ENV: "staging"
+  AGENT_LOG_DIR: "/tmp/finance-agent/logs"
+  AGENT_LOG_LEVEL: "INFO"
+  AGENT_PROVIDER: "echo"
+  AGENT_SERVE_WEB: "true"
+  YFINANCE_CACHE_DIR: "/tmp/finance-agent/yfinance"

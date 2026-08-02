@@ -2,12 +2,24 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .core import FunctionTool
+
+if TYPE_CHECKING:
+    from ..market_data.aktools import AkToolsClient
+    from ..market_data.alltick import AllTickClient
+    from ..market_data.alphavantage import AlphaVantageClient
+    from ..market_data.baostock import BaoStockClient
+    from ..market_data.biying import BiyingClient
+    from ..market_data.eastmoney import EastmoneySecuritySearchClient
+    from ..market_data.eodhd import EODHDClient
+    from ..market_data.tickflow import TickFlowClient
+    from ..market_data.yfinance import YFinanceClient
+    from ..market_data.zhitu import ZhituClient
 
 
 def create_alltick_market_data_tool(client: "AllTickClient") -> FunctionTool:

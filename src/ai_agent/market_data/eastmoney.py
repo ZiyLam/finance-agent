@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-import json
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-
 
 EASTMONEY_SEARCH_API = "https://searchapi.eastmoney.com/api/suggest/get"
 EASTMONEY_INDUSTRY_API = "https://push2.eastmoney.com/api/qt/clist/get"

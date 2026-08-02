@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
+import unittest
 from datetime import date
 from threading import Event, Thread
 from time import monotonic
-import unittest
 
 from ai_agent.application.beginner_research import BeginnerResearchService
 from ai_agent.application.entity_resolution import HSBC_HK

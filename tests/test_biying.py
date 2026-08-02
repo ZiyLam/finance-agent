@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
 import unittest
+from unittest.mock import patch
 
 from ai_agent.cli import run_source_command
 from ai_agent.market_data.biying import BiyingClient, BiyingLimits

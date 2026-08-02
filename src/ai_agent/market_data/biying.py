@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
+import json
 from collections import deque
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
-import json
 from time import monotonic
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
-
 
 BIYING_API_BASE = "https://api.biyingapi.com"
 

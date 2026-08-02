@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date
 import json
-from unittest.mock import patch
 import unittest
+from datetime import date
+from unittest.mock import patch
 
 from ai_agent.cli import run_source_command
 from ai_agent.market_data.baostock import (
@@ -12,7 +12,6 @@ from ai_agent.market_data.baostock import (
     BaoStockRateLimitError,
 )
 from ai_agent.tools import ToolRegistry, create_baostock_market_data_tool
-
 
 FIELDS = [
     "date",

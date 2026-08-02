@@ -1,0 +1,66 @@
+name: Publish container
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish image to GHCR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.13"
+
+      - name: Install locked development dependencies
+        run: uv sync --locked --group dev
+
+      - name: Run release checks
+        env:
+          AGENT_PROVIDER: echo
+          PYTHONPATH: src
+        run: |
+          uv run ruff check src tests scripts
+          uv run python -m unittest discover -s tests -v
+          uv run python scripts/generate_design_tokens.py --check
+          uv export --locked --no-dev --no-emit-project \
+            --format requirements-txt --output-file "$RUNNER_TEMP/requirements.txt"
+          uv run pip-audit --require-hashes --disable-pip \
+            --requirement "$RUNNER_TEMP/requirements.txt"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=tag
+            type=sha
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

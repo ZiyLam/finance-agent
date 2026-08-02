@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
 import json
 import unittest
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from ai_agent.market_data.tickflow import TickFlowClient, TickFlowTransportError

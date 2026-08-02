@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import argparse
-from copy import deepcopy
 import json
-from pathlib import Path
 import re
 import sys
-
+from copy import deepcopy
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TOKEN_PATH = PROJECT_ROOT / "frontend" / "design-tokens.json"

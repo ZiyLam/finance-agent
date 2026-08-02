@@ -7,11 +7,11 @@ from datetime import datetime, timezone
 from typing import Callable
 
 from ..analysis_execution import SecurityAnalysisExecutor
+from ..infrastructure.store import ApplicationStore
+from ..infrastructure.task_queue import TaskQueue
 from ..research_planning import SecurityAnalysisRequest
 from ..research_report import SecurityResearchReportBuilder
 from ..tools import ToolRegistry
-from ..infrastructure.store import ApplicationStore
-from ..infrastructure.task_queue import TaskQueue
 from .contracts import ResearchTask, Submission, SubmissionStatus, TaskStatus
 from .input_parser import ResearchIntentParser
 from .narration import ReportNarrator

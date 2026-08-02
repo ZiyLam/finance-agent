@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
 import json
+from collections.abc import Callable, Sequence
 
 from ..messages import ChatMessage, ModelResponse, ToolCall
 from ..tools import Tool

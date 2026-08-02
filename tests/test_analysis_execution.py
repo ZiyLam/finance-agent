@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from contextlib import redirect_stdout
 import io
 import json
 import os
 import unittest
+from contextlib import redirect_stdout
 from unittest.mock import patch
 
+from ai_agent import cli
 from ai_agent.analysis_execution import SecurityAnalysisExecutor
 from ai_agent.analysis_tags import AnalysisScenario, Market
-from ai_agent import cli
 from ai_agent.research_planning import SecurityAnalysisRequest
 from ai_agent.tools import FunctionTool, ToolRegistry
 

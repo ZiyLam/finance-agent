@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import os
+import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Event
 from time import perf_counter
-import unittest
 from unittest.mock import patch
 
 from ai_agent.application.source_connectivity import SourceConnectivityService

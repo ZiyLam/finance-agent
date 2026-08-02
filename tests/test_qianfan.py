@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from urllib.error import HTTPError
 import unittest
+from urllib.error import HTTPError
 
 from ai_agent.messages import ChatMessage, MessageRole
 from ai_agent.providers.qianfan import (

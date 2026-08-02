@@ -7,8 +7,8 @@ ambiguity instead of asking an LLM to guess an exchange or currency.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)

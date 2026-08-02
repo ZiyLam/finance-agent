@@ -6,7 +6,11 @@ import unittest
 from ai_agent.analysis_tags import AnalysisScenario, DataSourceTag, Market, ModelTag
 from ai_agent.cli import run_route_command
 from ai_agent.data_sources import get_data_source
-from ai_agent.research_planning import SecurityAnalysisRequest, build_security_analysis_plan, catalog_snapshot
+from ai_agent.research_planning import (
+    SecurityAnalysisRequest,
+    build_security_analysis_plan,
+    catalog_snapshot,
+)
 
 
 class ResearchPlanningTests(unittest.TestCase):
