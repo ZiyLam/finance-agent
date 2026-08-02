@@ -4,7 +4,7 @@ Implementations are grouped by responsibility under ``ai_agent.tooling``.
 This module remains the compatibility boundary for existing callers.
 """
 
-from .tooling.core import FunctionTool, Tool, ToolRegistry, create_echo_tool
+from .tooling.core import FunctionTool, Tool, ToolRegistry, ToolSideEffect, create_echo_tool
 from .tooling.knowledge import create_ima_knowledge_search_tool
 from .tooling.market_data import (
     create_aktools_market_data_tool,
@@ -24,6 +24,7 @@ __all__ = [
     "FunctionTool",
     "Tool",
     "ToolRegistry",
+    "ToolSideEffect",
     "create_aktools_market_data_tool",
     "create_alltick_market_data_tool",
     "create_alphavantage_market_data_tool",

@@ -19,7 +19,7 @@ The local Web entry is `finance-agent-api` followed by
 `http://127.0.0.1:8000/web/`; the authenticated mini-program API contract and
 personal-only deployment limits are in [mini-program-backend.md](mini-program-backend.md).
 
-Current suite result: **193 tests passed in 8.225 seconds** on 2026-08-02.
+Current suite result: **195 tests passed in 7.350 seconds** on 2026-08-02.
 
 ## Automated-test classification and risk coverage
 
@@ -37,7 +37,7 @@ Current suite result: **193 tests passed in 8.225 seconds** on 2026-08-02.
 | Ambiguous entities | The reviewed HSBC name yields both Hong Kong ordinary-share and US ADR candidates; explicit exchange/ticker resolves only that listing (`test_entity_resolution.py`). Unknown names do not guess. |
 | Timeout | Blocked market source, index read, sector scan, and connectivity probe paths return a bounded unavailable/timeout response rather than waiting for the upstream call indefinitely (`test_performance.py`, `test_source_connectivity.py`). |
 | Duplicate requests | Since this review, identical in-flight `(security, start date, end date, limit)` reads share one source request; later completed requests are **not** cached, so they read fresh data. `test_identical_concurrent_reads_share_one_in_flight_source_call` verifies two callers receive a result from one source call. |
-| Unsafe write actions | The runtime constructs only named read-only market/knowledge tools; Codex CLI is invoked with its read-only sandbox (`test_codex_cli.py`). There is no order or trading adapter. Before any broader deployment, add an explicit capability type plus a negative registry test for injected write-capable tools. |
+| Unsafe write actions | Every Agent-callable tool declares a `ToolSideEffect`; the registry fails closed unless it is `READ_ONLY`, and the negative test rejects an injected mutating order tool before execution (`test_tools.py`). Codex CLI also runs in its read-only sandbox (`test_codex_cli.py`). |
 
 ## Measured local fixture baseline
 

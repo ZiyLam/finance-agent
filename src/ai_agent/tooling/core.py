@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from enum import Enum
 import logging
 from time import monotonic
 from typing import Any, Protocol
@@ -12,11 +13,19 @@ from ..data_sources import get_data_source
 from ..observability import elapsed_milliseconds, log_event
 
 
+class ToolSideEffect(str, Enum):
+    """Side-effect capability declared by every Agent-callable tool."""
+
+    READ_ONLY = "read_only"
+    MUTATING = "mutating"
+
+
 class Tool(Protocol):
     """A side-effect-aware capability exposed to an agent."""
 
     name: str
     description: str
+    side_effect: ToolSideEffect
 
     def run(self, arguments: Mapping[str, Any]) -> str:
         """Validate arguments and return a text result for the model."""
@@ -27,6 +36,7 @@ class FunctionTool:
     name: str
     description: str
     handler: Callable[[Mapping[str, Any]], str]
+    side_effect: ToolSideEffect = ToolSideEffect.READ_ONLY
 
     def run(self, arguments: Mapping[str, Any]) -> str:
         return self.handler(arguments)
@@ -51,6 +61,12 @@ class ToolRegistry:
             raise ValueError("Tool names must contain only letters, numbers, and underscores")
         if tool.name in self._tools:
             raise ValueError(f"A tool named '{tool.name}' is already registered")
+        try:
+            side_effect = ToolSideEffect(tool.side_effect)
+        except (AttributeError, TypeError, ValueError):
+            raise ValueError("Agent tools must declare a valid side-effect capability") from None
+        if side_effect is not ToolSideEffect.READ_ONLY:
+            raise ValueError("The Agent tool registry accepts read-only tools only")
         self._tools[tool.name] = tool
 
     def execute(self, name: str, arguments: Mapping[str, Any]) -> str:
@@ -175,4 +191,3 @@ def create_echo_tool() -> FunctionTool:
         return text
 
     return FunctionTool("echo", "Returns the supplied text unchanged.", echo)
-

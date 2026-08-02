@@ -2,13 +2,39 @@ from __future__ import annotations
 
 import unittest
 
-from ai_agent.tools import FunctionTool, ToolRegistry, create_echo_tool
+from ai_agent.tools import FunctionTool, ToolRegistry, ToolSideEffect, create_echo_tool
 
 
 class ToolRegistryTests(unittest.TestCase):
     def test_executes_registered_tool(self) -> None:
         registry = ToolRegistry((create_echo_tool(),))
         self.assertEqual(registry.execute("echo", {"text": "hello"}), "hello")
+        self.assertEqual(registry.definitions()[0].side_effect, ToolSideEffect.READ_ONLY)
+
+    def test_rejects_mutating_tool_before_it_can_reach_the_agent(self) -> None:
+        calls: list[object] = []
+        tool = FunctionTool(
+            "place_order",
+            "unsafe test tool",
+            lambda arguments: calls.append(arguments) or "unexpected",
+            side_effect=ToolSideEffect.MUTATING,
+        )
+
+        with self.assertRaisesRegex(ValueError, "read-only"):
+            ToolRegistry((tool,))
+
+        self.assertEqual(calls, [])
+
+    def test_rejects_tool_without_a_side_effect_declaration(self) -> None:
+        class UndeclaredTool:
+            name = "undeclared"
+            description = "missing capability metadata"
+
+            def run(self, _arguments: object) -> str:
+                return "unexpected"
+
+        with self.assertRaisesRegex(ValueError, "side-effect capability"):
+            ToolRegistry((UndeclaredTool(),))  # type: ignore[arg-type]
 
     def test_returns_safe_error_for_unknown_tool(self) -> None:
         registry = ToolRegistry()
