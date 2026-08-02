@@ -53,7 +53,7 @@ jobs:
           uv run python scripts/generate_design_tokens.py --check
 
       - name: Run Web client tests
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
 
