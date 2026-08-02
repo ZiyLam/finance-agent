@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import date
 import json
 import unittest
+from datetime import date
 
 from ai_agent.application.beginner_research import BeginnerResearchService
 from ai_agent.application.index_research import (

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date
 import json
-from urllib.parse import parse_qs, urlparse
 import unittest
+from datetime import date
+from urllib.parse import parse_qs, urlparse
 
 from ai_agent.market_data.alltick import (
     AllTickAssetClass,

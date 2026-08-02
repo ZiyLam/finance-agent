@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.13"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install locked dependencies
+        run: uv sync --locked --group dev
+
+      - name: Check Python code
+        run: uv run ruff check src tests scripts
+
+      - name: Run test suite
+        env:
+          AGENT_PROVIDER: echo
+          PYTHONPATH: src
+        run: uv run python -m unittest discover -s tests -v
+
+      - name: Check generated contracts and design tokens
+        run: |
+          uv run python scripts/export_openapi.py --output "$RUNNER_TEMP/finance-agent-openapi.json"
+          uv run python scripts/generate_design_tokens.py --check
+
+      - name: Run Web client tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: node --test tests/test_web_api_client.js
+
+  build:
+    name: Build distribution
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.13"
+
+      - name: Install locked development dependencies
+        run: uv sync --locked --group dev
+
+      - name: Audit locked runtime dependencies
+        run: |
+          uv export --locked --no-dev --no-emit-project \
+            --format requirements-txt --output-file "$RUNNER_TEMP/requirements.txt"
+          uv run pip-audit --require-hashes --disable-pip \
+            --requirement "$RUNNER_TEMP/requirements.txt"
+
+      - name: Build wheel and source distribution
+        run: uv build
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: finance-agent-distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  container:
+    name: Build container
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build container image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: finance-agent:ci

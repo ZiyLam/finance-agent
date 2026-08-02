@@ -7,14 +7,12 @@ into safe provider-neutral failures before they reach an Agent or the Web UI.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
-import re
-from typing import Any
 from zoneinfo import ZoneInfo
-
 
 _SYMBOL_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9_-]{0,30}\.(?:SH|SZ|BJ|US|HK)$")
 _SUPPORTED_ADJUSTMENTS = frozenset({"forward", "backward", "none"})

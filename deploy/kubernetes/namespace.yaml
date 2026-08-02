@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: finance-agent-staging
+  labels:
+    app.kubernetes.io/name: finance-agent
+    app.kubernetes.io/environment: staging

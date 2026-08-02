@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-import json
 from threading import Lock
-from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-
 
 IMA_API_BASE_URL = "https://ima.qq.com/openapi/wiki/v1"
 

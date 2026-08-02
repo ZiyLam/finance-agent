@@ -7,18 +7,17 @@ or behind an operator-controlled URL) before this client can retrieve data.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-import json
 from os import getenv
 from time import monotonic
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
-
 
 DEFAULT_AKTOOLS_BASE_URL = "http://127.0.0.1:8080"
 

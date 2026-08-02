@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
 import unittest
+from datetime import date
 
 from ai_agent.analysis_tags import AnalysisScenario, Market
 from ai_agent.application.input_parser import ResearchIntentParser

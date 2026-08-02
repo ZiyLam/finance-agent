@@ -7,8 +7,8 @@ or logs.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
 import json
+from collections.abc import Callable, Sequence
 from typing import Protocol
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -16,7 +16,6 @@ from urllib.request import Request, urlopen
 from ..messages import ChatMessage, ModelResponse
 from ..tools import Tool
 from .structured_response import build_agent_prompt, parse_agent_response
-
 
 QIANFAN_CHAT_COMPLETIONS_URL = "https://qianfan.baidubce.com/v2/chat/completions"
 DEFAULT_QIANFAN_MODEL = "ernie-4.5-turbo-32k"

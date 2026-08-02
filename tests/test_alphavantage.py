@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date
 import json
-from urllib.parse import parse_qs, urlparse
 import unittest
+from datetime import date
+from urllib.parse import parse_qs, urlparse
 
 from ai_agent.cli import run_source_command
 from ai_agent.market_data.alphavantage import (
@@ -12,7 +12,6 @@ from ai_agent.market_data.alphavantage import (
     AlphaVantageRateLimitError,
 )
 from ai_agent.tools import ToolRegistry, create_alphavantage_market_data_tool
-
 
 DAILY_PAYLOAD = {
     "Meta Data": {"1. Information": "Daily Prices (open, high, low, close) and Volumes"},

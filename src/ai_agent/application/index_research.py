@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from datetime import date
-import re
 
 from .beginner_research import BeginnerResearchService
+
 # Keep the original import surface stable while static metadata lives in its own module.
 from .index_catalog import (
     CAC_40,
     CHINEXT,
-    CSI_1000,
     CSI_300,
     CSI_500,
+    CSI_1000,
     DAX,
     DOW_JONES,
     FTSE_100,
@@ -25,8 +26,8 @@ from .index_catalog import (
     NASDAQ_COMPOSITE,
     NIKKEI_225,
     PROFESSIONAL_MARKETS,
-    PROFESSIONAL_METRICS,
     PROFESSIONAL_METRIC_KEYS,
+    PROFESSIONAL_METRICS,
     RUSSELL_2000,
     SP_500,
     SSE_50,
@@ -36,6 +37,37 @@ from .index_catalog import (
     get_index,
     professional_research_catalog,
 )
+
+__all__ = [
+    "CAC_40",
+    "CHINEXT",
+    "CSI_1000",
+    "CSI_300",
+    "CSI_500",
+    "DAX",
+    "DOW_JONES",
+    "FTSE_100",
+    "HANG_SENG",
+    "HANG_SENG_TECH",
+    "INDEX_CATALOG",
+    "INDEXES_BY_KEY",
+    "NASDAQ_100",
+    "NASDAQ_COMPOSITE",
+    "NIKKEI_225",
+    "PROFESSIONAL_MARKETS",
+    "PROFESSIONAL_METRIC_KEYS",
+    "PROFESSIONAL_METRICS",
+    "RUSSELL_2000",
+    "SP_500",
+    "SSE_50",
+    "SSE_COMPOSITE",
+    "SZSE_COMPONENT",
+    "IndexDefinition",
+    "IndexResearchService",
+    "IndexResolver",
+    "get_index",
+    "professional_research_catalog",
+]
 
 _MARKET_DATA_METRICS = frozenset(
     {"market_data", "period_performance", "market_sentiment"}

@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
 import json
 import logging
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
 from time import monotonic
 from typing import Any
 
 from .analysis_tags import AnalysisScenario, DataSourceTag
 from .observability import elapsed_milliseconds, log_event
-from .research_planning import SecurityAnalysisPlan, SecurityAnalysisRequest, SourceRoute, build_security_analysis_plan
+from .research_planning import (
+    SecurityAnalysisPlan,
+    SecurityAnalysisRequest,
+    SourceRoute,
+    build_security_analysis_plan,
+)
 from .tools import ToolRegistry
 
 

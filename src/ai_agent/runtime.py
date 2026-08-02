@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from os import getenv
 
-from .secrets import SecretStoreError, resolve_token
 from .provider_activation import ProviderActivationStore
+from .secrets import SecretStoreError, resolve_token
 from .tools import (
     ToolRegistry,
     create_aktools_market_data_tool,
@@ -13,10 +13,10 @@ from .tools import (
     create_alphavantage_market_data_tool,
     create_baostock_market_data_tool,
     create_biying_market_data_tool,
-    create_eodhd_market_data_tool,
-    create_eastmoney_security_search_tool,
     create_eastmoney_market_scan_tool,
+    create_eastmoney_security_search_tool,
     create_echo_tool,
+    create_eodhd_market_data_tool,
     create_ima_knowledge_search_tool,
     create_tickflow_market_data_tool,
     create_yfinance_market_data_tool,
@@ -92,9 +92,9 @@ def build_market_data_tool_registry(*, include_echo: bool = True) -> ToolRegistr
                 )
             )
         )
-    from .market_data.eastmoney import EastmoneySecuritySearchClient
     from .market_data.aktools import AkToolsClient
     from .market_data.baostock import BaoStockClient
+    from .market_data.eastmoney import EastmoneySecuritySearchClient
     from .market_data.yfinance import YFinanceClient
 
     registered_tools.append(create_aktools_market_data_tool(AkToolsClient.from_environment()))

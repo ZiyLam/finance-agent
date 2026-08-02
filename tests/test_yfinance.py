@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date, datetime
 import json
-from unittest.mock import patch
 import unittest
+from datetime import date, datetime
+from unittest.mock import patch
 
 from ai_agent.cli import run_source_command
 from ai_agent.market_data.yfinance import (
@@ -12,7 +12,6 @@ from ai_agent.market_data.yfinance import (
     YFinanceRateLimitError,
 )
 from ai_agent.tools import ToolRegistry, create_yfinance_market_data_tool
-
 
 ROW = {
     "Open": 185.64,

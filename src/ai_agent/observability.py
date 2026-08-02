@@ -8,17 +8,15 @@ exception messages are never written to this logger.
 
 from __future__ import annotations
 
-from contextvars import ContextVar, Token
-from datetime import datetime, timezone
 import json
 import logging
+from contextvars import ContextVar, Token
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from os import getenv
 from pathlib import Path
 from time import monotonic
-from typing import Any
 from uuid import uuid4
-
 
 LOGGER_NAME = "finance_agent"
 _LOGGER = logging.getLogger(LOGGER_NAME)

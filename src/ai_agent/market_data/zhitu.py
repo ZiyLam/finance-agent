@@ -9,19 +9,18 @@ date window before making a network call.
 
 from __future__ import annotations
 
+import json
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
-import json
-import re
 from threading import RLock
 from time import monotonic
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
-
 
 ZHITU_API_BASE = "https://api.zhituapi.com"
 _SYMBOL_PATTERN = re.compile(r"^\d{6}\.(?:SH|SZ)$")

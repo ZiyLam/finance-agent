@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from contextvars import copy_context
 from dataclasses import dataclass
 from datetime import date, timedelta
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-import json
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from threading import Event, RLock, Thread
-from typing import Any
 
 from ..data_sources import get_data_source
 from ..observability import log_event

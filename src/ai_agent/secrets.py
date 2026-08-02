@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import base64
 import ctypes
-from ctypes import wintypes
 import json
+from ctypes import wintypes
 from os import getenv, replace
 from pathlib import Path
 from typing import Callable

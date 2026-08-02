@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field
 from langchain_core.tools import BaseTool
+from pydantic import Field
 
 from ..tools import ToolRegistry
-
 
 _MARKET_DATA_PROPERTIES: dict[str, dict[str, object]] = {
     "action": {"type": "string", "description": "Operation supported by the selected data source."},

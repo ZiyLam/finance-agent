@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import unittest
 
-from ai_agent.application.entity_resolution import HSBC_ADR, HSBC_HK, KWEICHOW_MOUTAI, SecurityEntityResolver
+from ai_agent.application.entity_resolution import (
+    HSBC_ADR,
+    HSBC_HK,
+    KWEICHOW_MOUTAI,
+    SecurityEntityResolver,
+)
 
 
 class SecurityEntityResolverTests(unittest.TestCase):

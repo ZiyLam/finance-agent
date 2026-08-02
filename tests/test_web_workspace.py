@@ -1,22 +1,22 @@
 from __future__ import annotations
 
-from datetime import date, datetime
 import json
 import os
+import unittest
+from datetime import date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
 from ai_agent.agent import AgentResult
 from ai_agent.api.app import create_app, create_development_components
-from ai_agent.application.entity_resolution import EntityResolution, KWEICHOW_MOUTAI
-from ai_agent.application.web_workspace import WebWorkspaceError, WebWorkspaceService
+from ai_agent.application.entity_resolution import KWEICHOW_MOUTAI, EntityResolution
 from ai_agent.application.input_parser import ResearchIntentParser
 from ai_agent.application.source_connectivity import SourceConnectivityService
 from ai_agent.application.source_credentials import SourceCredentialService
+from ai_agent.application.web_workspace import WebWorkspaceError, WebWorkspaceService
 from ai_agent.data_sources import DATA_SOURCE_CATALOG
 from ai_agent.messages import ToolCall
 from ai_agent.provider_activation import ProviderActivationStore
@@ -252,9 +252,10 @@ class WebWorkspaceTests(unittest.TestCase):
                 }
             )
 
-        registry_factory = lambda: ToolRegistry(
-            (FunctionTool("yfinance_market_data", "index test", market_data),)
-        )
+        def registry_factory() -> ToolRegistry:
+            return ToolRegistry(
+                (FunctionTool("yfinance_market_data", "index test", market_data),)
+            )
         workspace = WebWorkspaceService(
             tool_registry_factory=registry_factory,
             agent_factory=FakeWebAgent,  # type: ignore[arg-type]

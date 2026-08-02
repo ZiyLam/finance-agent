@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
-from datetime import date, datetime, timezone
 import json
 import logging
-from queue import Empty, Queue
 import re
+from dataclasses import dataclass, field, replace
+from datetime import date, datetime, timezone
+from queue import Empty, Queue
 from threading import RLock, Thread
 from time import monotonic
 from typing import Callable
@@ -20,10 +20,10 @@ from .beginner_research import BeginnerResearchService
 from .contracts import ResearchIntent
 from .entity_resolution import EntityResolution, SecurityEntityResolver
 from .index_research import IndexResearchService, IndexResolver, professional_research_catalog
-from .professional_research import ProfessionalResearchService
-from .security_discovery import SecurityDiscoveryService
 from .input_parser import ResearchIntentParser
 from .narration import ReportNarrator
+from .professional_research import ProfessionalResearchService
+from .security_discovery import SecurityDiscoveryService
 from .web_report import WebReportService
 from .web_workspace_contracts import WebAgentReply, WebWorkspaceError
 

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from datetime import date
 import json
-from urllib.parse import parse_qs, unquote, urlparse
 import unittest
+from datetime import date
+from urllib.parse import parse_qs, unquote, urlparse
 
 from ai_agent.cli import run_source_command
 from ai_agent.market_data.eodhd import EODHDApiError, EODHDClient, EODHDLimits, EODHDRateLimitError
 from ai_agent.tools import ToolRegistry, create_eodhd_market_data_tool
-
 
 HISTORY_PAYLOAD = [
     {

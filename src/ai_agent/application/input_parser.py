@@ -8,14 +8,13 @@ clarification items for the mini-program.
 
 from __future__ import annotations
 
+import re
 from calendar import monthrange
 from datetime import date, timedelta
-import re
 from typing import Callable
 
 from ..analysis_tags import AnalysisScenario, Market
 from .contracts import Clarification, ResearchIntent
-
 
 _A_SHARE_CODE = re.compile(r"(?<![A-Za-z0-9])(?:(?:sh|sz|bj)\.)?(\d{6})(?:\.(?:SS|SZ))?(?![A-Za-z0-9])", re.I)
 _GLOBAL_SYMBOL = re.compile(r"(?<![A-Za-z0-9])([A-Za-z][A-Za-z0-9.-]{0,15}\.(?:US|HK))(?![A-Za-z0-9])", re.I)

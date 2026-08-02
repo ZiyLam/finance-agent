@@ -8,13 +8,12 @@ response into a prompt.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 
-from ..analysis_tags import AnalysisScenario
 from ..data_sources import DATA_SOURCE_CATALOG
 from ..research_planning import SCENARIO_RULES
 

@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 import json
 import logging
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from time import monotonic
 from typing import Any
 
-from pydantic import ConfigDict
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
+from pydantic import ConfigDict
 
 from ..messages import ChatMessage, MessageRole
 from ..observability import elapsed_milliseconds, log_event

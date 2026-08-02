@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 from ai_agent.api.app import create_app, create_development_components
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WEB_OPERATIONS = (

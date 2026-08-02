@@ -7,14 +7,13 @@ not invent company fundamentals, news, filings, or a buy/sell instruction.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
-import math
 from statistics import stdev
 from typing import Iterable
 
 from .analysis_execution import EvidenceRecord, RiskFlag, SecurityAnalysisResult
-
 
 EVIDENCE_GRADE = "B"
 """Current adapters are third-party/public market-data sources, not filings."""

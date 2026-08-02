@@ -5,9 +5,9 @@ import os
 import unittest
 from unittest.mock import patch
 
-from fastapi import BackgroundTasks
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
 
+from ai_agent.api import main as api_main
 from ai_agent.api.app import (
     ConversationMessagePayload,
     WechatLoginPayload,
@@ -15,7 +15,6 @@ from ai_agent.api.app import (
     create_development_components,
 )
 from ai_agent.api.auth import AccessPolicy
-from ai_agent.api import main as api_main
 from ai_agent.tools import FunctionTool, ToolRegistry
 
 

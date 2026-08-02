@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 from unittest.mock import patch
 
 from ai_agent.cli import run_source_command
@@ -39,10 +39,12 @@ class TokenStoreTests(unittest.TestCase):
                 self.assertEqual(resolve_token("alltick", "ALLTICK_API_TOKEN", store), "temporary-token")
 
     def test_default_store_uses_finance_agent_name(self) -> None:
-        with patch.dict("os.environ", {"LOCALAPPDATA": "C:\\AgentData"}, clear=True):
-            self.assertEqual(
-                default_secret_store_path(), Path("C:/AgentData/Codex/finance-agent/tokens.json")
-            )
+        with TemporaryDirectory() as directory:
+            with patch.dict("os.environ", {"LOCALAPPDATA": directory}, clear=True):
+                self.assertEqual(
+                    default_secret_store_path(),
+                    Path(directory) / "Codex" / "finance-agent" / "tokens.json",
+                )
 
     def test_source_command_never_prints_token(self) -> None:
         with TemporaryDirectory() as directory:
