@@ -67,7 +67,9 @@ finance-agent-api
 # 浏览器访问 http://127.0.0.1:8000/web/
 ```
 
-默认服务仅绑定 `127.0.0.1`。如需远程访问，必须设置高强度的 `AGENT_WEB_ACCESS_TOKEN`，且不要把它提交到 Git。Web 界面必须通过 FastAPI 托管访问，不能直接双击 `web/index.html`。
+项目已经按部署边界拆开：浏览器只通过 HTTP API 使用后端，后端不导入前端代码。开发环境默认由 FastAPI 在 `/web/` 托管静态文件；独立部署时，将 `AGENT_SERVE_WEB=false`，在 `web/runtime-config.js` 配置后端地址，并把前端的精确 Origin 加入 `AGENT_WEB_ALLOWED_ORIGINS`。OpenAPI 是前后端契约，可通过 `python scripts/export_openapi.py --output <文件>` 导出；Vue 或 uni-app 迁移应基于该契约生成客户端，而不是复制请求代码。
+
+默认服务仅绑定 `127.0.0.1`。跨主机访问还必须设置高强度 `AGENT_WEB_ACCESS_TOKEN`，且不要提交到 Git；CORS 只接受显式的 HTTP(S) Origin，不接受 `*`。远程参数页仍禁止维护或回显数据源凭据。
 
 研究工作台默认使用精简版自然语言输入；切换到专业版后，可明确选择日期区间、A 股、港股、美股、日本和欧洲市场，以及多个指数和研究指标。指数目录包含上证指数、沪深 300、恒生指数、标普 500、纳斯达克综合指数、纳斯达克 100、道琼斯、罗素 2000、日经 225、富时 100、DAX 与 CAC 40 等常用基准；直接勾选指数会自动启用所属市场。专业版多指数请求走确定性并行链路，不调用 LLM；每个指数的行情类指标共用一次日线读取，只选择静态风格或风险时不访问行情数据源。
 
@@ -138,9 +140,10 @@ src/ai_agent/
     app.py                 FastAPI 装配、中间件与健康检查
     web_routes.py          Web 工作台和数据源配置路由
     mini_program_routes.py 微信小程序路由
-web/              FastAPI 托管的 Web 前端
+web/              可由 FastAPI 托管、也可独立部署的 Web 前端
   app.js           页面启动与请求编排
-  api-client.js    同源 API 客户端
+  api-client.js    同源/跨域共享 API 客户端
+  runtime-config.js 独立部署 API 地址
   research-form.js 精简/专业研究表单
   result-renderer.js 研究结果渲染与 Markdown 导出
 miniapp/          微信小程序客户端

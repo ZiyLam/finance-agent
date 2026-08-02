@@ -2,7 +2,7 @@
 
 本文是 [项目主说明](../README.md) 的 Web 使用补充，聚焦工作台启动、请求链路和访问控制；项目总体架构与模块职责请先阅读主说明。
 
-该目录是 Finance Agent 的正式 Web 前端，不是可以离线双击运行的静态页面。它由 FastAPI 在 `/web/` 托管，并通过同源 API 调用服务端的 LangChain、模型和已配置的只读行情工具。
+该目录是 Finance Agent 的正式 Web 前端，通过 API 调用服务端的 LangChain、模型和只读行情工具。开发时可由 FastAPI 在 `/web/` 托管；部署时也可放到独立静态站点。两种方式共用同一套页面和 `api-client.js`，不复制业务请求代码。
 
 ## 启动
 
@@ -13,7 +13,27 @@
 finance-agent-api
 ```
 
-随后打开 [http://127.0.0.1:8000/web/](http://127.0.0.1:8000/web/)。不要直接打开 `index.html`，否则它没有可调用的 API 服务。
+随后打开 [http://127.0.0.1:8000/web/](http://127.0.0.1:8000/web/)。页面需要 HTTP 静态服务和可访问的 API，不能使用 `file://` 双击运行。
+
+## 独立部署
+
+前端部署前修改 `runtime-config.js` 中的公开 API 地址；该文件不得包含 API Key：
+
+```js
+globalThis.FINANCE_AGENT_CONFIG = Object.freeze({
+  apiBaseUrl: "https://api.example.com",
+});
+```
+
+后端使用以下配置。Origin 必须是前端页面的精确 `scheme://host[:port]`，不能带路径、尾部 `/` 或通配符：
+
+```text
+AGENT_SERVE_WEB=false
+AGENT_WEB_ALLOWED_ORIGINS=https://web.example.com
+AGENT_WEB_ACCESS_TOKEN=<高强度随机值>
+```
+
+本地可分别启动 `python -m http.server --directory web 8011` 和端口 8010 的 API 进行联调。后端的 `/openapi.json` 以及 `python scripts/export_openapi.py --output <文件>` 是前端客户端的唯一接口契约。当前原生 Web 和小程序仍使用各自的视图代码；未来迁移 Vue/uni-app 时应复用生成的 API 类型与客户端，而不是强行共用页面样式文件。
 
 ## 运行链路
 
@@ -37,7 +57,7 @@ finance-agent-api
 
 ## 访问控制
 
-默认 API 绑定 `127.0.0.1`，因此无需额外令牌。本地以外的访问会被拒绝；如确有远程访问需求，设置服务端环境变量 `AGENT_WEB_ACCESS_TOKEN` 为高强度随机值，并在网页连接面板输入相同值。该值仅保存在当前浏览器会话，不写入 `localStorage`、导出文件或 Git。
+默认 API 绑定 `127.0.0.1`，因此无需额外令牌。本地以外的访问会被拒绝；如确有远程访问需求，设置服务端环境变量 `AGENT_WEB_ACCESS_TOKEN` 为高强度随机值，并在网页连接面板输入相同值。该值仅保存在当前浏览器会话，不写入 `localStorage`、导出文件或 Git。CORS 只决定浏览器是否可发起请求，不替代访问令牌或用户鉴权。
 
 ## 结果复制
 
@@ -47,7 +67,7 @@ finance-agent-api
 
 从工作台顶栏的“参数配置”，或直接打开
 `http://127.0.0.1:8000/web/sources.html`，可以维护数据源目录中的令牌。页面使用
-同源的正式 API，而不是读取 `.env` 或把令牌留在浏览器：
+共享 API 客户端，而不是读取 `.env` 或把令牌留在浏览器：
 
 ```text
 GET    /v1/web/sources
@@ -55,13 +75,12 @@ PUT    /v1/web/sources/{source}/token
 DELETE /v1/web/sources/{source}/token
 ```
 
-当前自用开发阶段，页面会临时回显每个数据源的“当前生效令牌”（环境变量优先）。
-该行为仅允许 `127.0.0.1` / `::1` 访问，且令牌不会写入 `localStorage`、导出文件
-或 Git。输入的新令牌仍只在提交请求中交给后端，并由当前 Windows 用户的 DPAPI
-加密写入本地应用数据目录；删除操作也只删除本地加密副本，不会修改环境变量。
+页面只展示令牌是否已配置和配置来源，不回显令牌正文。输入的新令牌只在提交请求
+中交给后端，并由当前 Windows 用户的 DPAPI 加密写入本地应用数据目录；删除操作
+也只删除本地加密副本，不会修改环境变量。
 
-准备开放远程访问、共享屏幕或提交代码前，应把 `reveal_active_tokens=True` 恢复为
-`False`，并将页面中的“当前生效令牌”字段移除。
+凭据维护接口始终只接受 API 服务端看到的 loopback 客户端。独立部署的远程网页
+可以执行研究，但不能通过该页面读取、写入或删除数据源令牌。
 
 令牌以外的服务参数仍遵循各适配器的运行时配置。例如 AkTools 的服务地址目前
 由 `AKTOOLS_BASE_URL` 环境变量（或默认本机地址）决定，设置页会展示这一来源，

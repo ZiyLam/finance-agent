@@ -7,9 +7,11 @@ from hmac import compare_digest
 from os import getenv
 from pathlib import Path
 from time import monotonic
-from typing import Callable
+from typing import Callable, Sequence
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -58,6 +60,58 @@ class ApplicationComponents:
     access_policy: AccessPolicy
 
 
+_TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+_FALSE_VALUES = frozenset({"0", "false", "no", "off"})
+
+
+def _environment_flag(name: str, *, default: bool) -> bool:
+    value = getenv(name)
+    if value is None or not value.strip():
+        return default
+    normalized = value.strip().lower()
+    if normalized in _TRUE_VALUES:
+        return True
+    if normalized in _FALSE_VALUES:
+        return False
+    raise ValueError(f"{name} must be one of: true, false, 1, 0, yes, no, on, off")
+
+
+def _web_allowed_origins(configured: Sequence[str] | None) -> tuple[str, ...]:
+    raw_origins = configured
+    if raw_origins is None:
+        raw_origins = getenv("AGENT_WEB_ALLOWED_ORIGINS", "").split(",")
+
+    origins: list[str] = []
+    for raw_origin in raw_origins:
+        origin = raw_origin.strip()
+        if not origin:
+            continue
+        if origin == "*":
+            raise ValueError("AGENT_WEB_ALLOWED_ORIGINS does not allow wildcard origins")
+
+        try:
+            parsed = urlsplit(origin)
+            parsed.port
+        except ValueError as error:
+            raise ValueError(f"Invalid Web origin: {origin}") from error
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or any(character.isspace() for character in origin)
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.netloc.endswith(":")
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+            or origin != f"{parsed.scheme}://{parsed.netloc}"
+        ):
+            raise ValueError(f"Web origin must be a complete HTTP(S) origin without a path: {origin}")
+        if origin not in origins:
+            origins.append(origin)
+    return tuple(origins)
+
+
 def create_development_components(
     *,
     tool_registry_factory: Callable[[], ToolRegistry] = ToolRegistry,
@@ -98,13 +152,11 @@ def create_app(
     web_workspace: WebWorkspaceService | None = None,
     source_credentials: SourceCredentialService | None = None,
     source_connectivity: SourceConnectivityService | None = None,
+    serve_web: bool | None = None,
+    web_directory: Path | None = None,
+    web_allowed_origins: Sequence[str] | None = None,
 ) -> FastAPI:
-    """Create the HTTP app without exposing data-source credentials to clients.
-
-    The ``/web/`` static assets are a formal first-party entry point.  Their
-    requests reach the same LangChain Agent and read-only research services as
-    other application clients; credentials remain server-side.
-    """
+    """Create the HTTP app without exposing data-source credentials to clients."""
 
     app_components = components or create_development_components(
         tool_registry_factory=tool_registry_factory,
@@ -115,6 +167,17 @@ def create_app(
     app.state.web_workspace = web_workspace
     app.state.source_credentials = source_credentials
     app.state.source_connectivity = source_connectivity
+
+    allowed_origins = _web_allowed_origins(web_allowed_origins)
+    if allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(allowed_origins),
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=["Accept", "Authorization", "Content-Type", "X-Finance-Agent-Token"],
+            expose_headers=["X-Request-ID"],
+        )
 
     @app.middleware("http")
     async def trace_api_request(request: Request, call_next):  # type: ignore[no-untyped-def]
@@ -152,15 +215,16 @@ def create_app(
         finally:
             reset_request_id(context_token)
 
-    web_directory = Path(__file__).resolve().parents[3] / "web"
-    if web_directory.is_dir():
-        app.mount("/web", StaticFiles(directory=web_directory, html=True), name="web")
+    should_serve_web = serve_web if serve_web is not None else _environment_flag("AGENT_SERVE_WEB", default=True)
+    if should_serve_web:
+        static_directory = web_directory or Path(__file__).resolve().parents[3] / "web"
+        if not static_directory.is_dir():
+            raise FileNotFoundError(f"Web workspace directory does not exist: {static_directory}")
+        app.mount("/web", StaticFiles(directory=static_directory, html=True), name="web")
 
-    @app.get("/", include_in_schema=False)
-    def web_root() -> RedirectResponse:
-        if not web_directory.is_dir():
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Web workspace assets are not installed")
-        return RedirectResponse(url="/web/")
+        @app.get("/", include_in_schema=False)
+        def web_root() -> RedirectResponse:
+            return RedirectResponse(url="/web/")
 
     def current_identity(authorization: str | None = Header(default=None)) -> SessionIdentity:
         if not authorization or not authorization.startswith("Bearer "):

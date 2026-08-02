@@ -10,14 +10,14 @@
   <body>
     <main class="app-shell" aria-busy="false">
       <header class="topbar">
-        <a class="brand" href="/web/" aria-label="Finance Agent 研究工作台">
+        <a class="brand" href="./" aria-label="Finance Agent 研究工作台">
           <span class="brand-mark" aria-hidden="true">ƒ</span>
           <span><strong>Finance Agent</strong><small>LangChain 研究工作台</small></span>
         </a>
         <div class="api-state" aria-live="polite">
           <span class="status-dot" id="api-dot"></span>
           <span id="api-status">正在连接本地 API…</span>
-          <a class="settings-link" href="/web/sources.html">参数配置</a>
+          <a class="settings-link" href="sources.html">参数配置</a>
         </div>
       </header>
 
@@ -96,6 +96,7 @@
       </div>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="app.js?v=modular-workbench-1"></script>
+    <script src="runtime-config.js?v=independent-deployment-1"></script>
+    <script type="module" src="app.js?v=independent-deployment-1"></script>
   </body>
 </html>

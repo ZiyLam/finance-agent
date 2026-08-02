@@ -1,3 +1,5 @@
+import { apiFetch } from "./api-client.js";
+
 const WEB_ACCESS_TOKEN_KEY = "finance-agent.web-access-token";
 
 const elements = {
@@ -23,20 +25,8 @@ const CONFIGURATION_GROUPS = {
   llm: "llm",
 };
 
-function accessHeaders() {
-  const token = sessionStorage.getItem(WEB_ACCESS_TOKEN_KEY);
-  return token ? { "X-Finance-Agent-Token": token } : {};
-}
-
 async function request(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    headers: { ...accessHeaders(), ...(options.headers || {}) },
-  });
-  let payload = {};
-  try { payload = await response.json(); } catch { /* The API should return JSON, but never expose an HTML error. */ }
-  if (!response.ok) throw new Error(payload.detail || "请求未完成");
-  return payload;
+  return apiFetch(path, options);
 }
 
 function setConnection(state, message) {

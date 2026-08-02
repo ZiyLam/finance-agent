@@ -10,7 +10,7 @@
   <body>
     <main class="app-shell settings-app">
       <header class="topbar settings-topbar">
-        <a class="brand" href="/web/" aria-label="返回 Finance Agent 研究工作台">
+        <a class="brand" href="./" aria-label="返回 Finance Agent 研究工作台">
           <span class="brand-mark" aria-hidden="true">ƒ</span>
           <span><strong>Finance Agent</strong><small>LangChain 研究工作台</small></span>
         </a>
@@ -19,7 +19,7 @@
           <span id="api-status">正在连接本地 API…</span>
         </div>
         <div class="top-actions">
-          <a class="button button-secondary button-link" href="/web/">返回研究工作台</a>
+          <a class="button button-secondary button-link" href="./">返回研究工作台</a>
           <button class="button button-primary" id="refresh-sources" type="button">刷新状态</button>
         </div>
       </header>
@@ -82,6 +82,7 @@
       </section>
     </main>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="sources.js?v=provider-modules-3"></script>
+    <script src="runtime-config.js?v=independent-deployment-1"></script>
+    <script type="module" src="sources.js?v=independent-deployment-1"></script>
   </body>
 </html>
