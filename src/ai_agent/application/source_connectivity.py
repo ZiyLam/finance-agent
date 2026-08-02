@@ -20,7 +20,7 @@ from ..data_sources import (
 from ..messages import ChatMessage, MessageRole
 from ..observability import log_event
 from ..provider_activation import ProviderActivationError, ProviderActivationStore
-from ..secrets import SecretStoreError, TokenStore, resolve_token
+from ..secrets import SecretStore, SecretStoreError, default_secret_store, resolve_token
 
 SourceProbe = Callable[[str | None], None]
 
@@ -57,7 +57,7 @@ class SourceConnectivityService:
 
     def __init__(
         self,
-        store: TokenStore | None = None,
+        store: SecretStore | None = None,
         *,
         activation: ProviderActivationStore | None = None,
         probes: Mapping[str, SourceProbe] | None = None,
@@ -70,7 +70,7 @@ class SourceConnectivityService:
             raise ValueError("source connectivity timeout_seconds must be positive")
         if max_parallel_checks < 1:
             raise ValueError("max_parallel_checks must be at least 1")
-        self._store = store or TokenStore()
+        self._store = store or default_secret_store()
         self._activation = activation or ProviderActivationStore()
         self._probes = dict(_default_probes() if probes is None else probes)
         self._timeout_seconds = timeout_seconds

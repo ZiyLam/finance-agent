@@ -6,7 +6,7 @@ from os import getenv
 
 from ..data_sources import DataSourceDefinition, get_data_source, ordered_data_sources
 from ..provider_activation import ProviderActivationError, ProviderActivationStore
-from ..secrets import SecretStoreError, TokenStore
+from ..secrets import SecretStore, SecretStoreError, default_secret_store
 
 
 class SourceCredentialError(RuntimeError):
@@ -18,10 +18,10 @@ class SourceCredentialService:
 
     def __init__(
         self,
-        store: TokenStore | None = None,
+        store: SecretStore | None = None,
         activation: ProviderActivationStore | None = None,
     ) -> None:
-        self._store = store or TokenStore()
+        self._store = store or default_secret_store()
         self._activation = activation or ProviderActivationStore()
 
     def list_sources(self) -> list[dict[str, object]]:
@@ -95,6 +95,9 @@ class SourceCredentialService:
             "latency_class": definition.latency_class.value,
             "configuration_group": definition.configuration_group.value,
             "enabled": enabled,
+            "credential_editable": self._store.writable,
+            "enablement_editable": self._activation.writable,
+            "credential_backend": self._store.backend_name,
         }
         return result
 

@@ -288,7 +288,7 @@ kbd { padding: 1px 5px; border: 1px solid #d8dee8; border-bottom-width: 2px; bor
 .source-enable-toggle::before { position: absolute; top: 50%; left: 6px; width: 10px; height: 10px; border-radius: 50%; background: #a7afbd; content: ""; transform: translateY(-50%); }
 .source-enable-toggle.enabled { border-color: #b9dfcf; background: #e4f6ed; color: #27795b; }
 .source-enable-toggle.enabled::before { background: #3b9b74; }
-.source-enable-toggle:disabled { cursor: wait; opacity: .65; }
+.source-enable-toggle:disabled { cursor: not-allowed; opacity: .65; }
 .source-origin { margin: 17px 0 0; color: #758198; font-size: 12px; font-weight: 650; line-height: 1.55; }
 .source-origin.configured { color: #2e7e61; }
 .source-usage { min-height: 38px; margin: 6px 0 15px; color: var(--muted); font-size: 11px; line-height: 1.6; }
@@ -316,6 +316,7 @@ kbd { padding: 1px 5px; border: 1px solid #d8dee8; border-bottom-width: 2px; bor
 .current-token-field input { border-color: #efd9bc; background: #fffaf2; color: #6b481d; font: 12px ui-monospace, SFMono-Regular, Consolas, monospace; }
 .source-token-actions { display: flex; gap: 7px; }
 .source-token-actions .button { min-height: 38px; padding-inline: 10px; white-space: nowrap; }
+.source-managed-notice { grid-column: 1 / -1; margin: 0; color: #758198; font-size: 11px; line-height: 1.55; }
 .settings-empty { grid-column: 1 / -1; margin: 0; padding: 30px; border: 1px dashed #cfd7e6; border-radius: 12px; color: #778298; text-align: center; font-size: 13px; }
 .settings-error { border-color: #efcbd3; color: #a74a5c; background: #fffafb; }
 

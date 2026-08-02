@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from os import getenv, replace
 from pathlib import Path
 from threading import RLock
@@ -16,10 +17,17 @@ class ProviderActivationError(RuntimeError):
 
 
 def default_provider_settings_path() -> Path:
-    """Keep mutable user choices outside the repository and its Git tree."""
+    """Keep mutable local-development choices in a platform-native state path."""
 
-    local_data = Path(getenv("LOCALAPPDATA", r"C:\Users\Default\AppData\Local"))
-    return local_data / "Codex" / "finance-agent" / "provider-settings.json"
+    configured_path = getenv("AGENT_PROVIDER_SETTINGS_PATH", "").strip()
+    if configured_path:
+        return Path(configured_path)
+    if os.name == "nt":
+        local_data = Path(getenv("LOCALAPPDATA", r"C:\Users\Default\AppData\Local"))
+        return local_data / "Codex" / "finance-agent" / "provider-settings.json"
+    state_home = getenv("XDG_STATE_HOME", "").strip()
+    local_state = Path(state_home) if state_home else Path.home() / ".local" / "state"
+    return local_state / "codex" / "finance-agent" / "provider-settings.json"
 
 
 class ProviderActivationStore:
@@ -30,14 +38,42 @@ class ProviderActivationStore:
     file, allowing a settings-page toggle to affect cached Agent/tool objects.
     """
 
-    def __init__(self, path: Path | None = None) -> None:
+    def __init__(
+        self,
+        path: Path | None = None,
+        *,
+        backend: str | None = None,
+        disabled_providers: str | None = None,
+    ) -> None:
         self._path = path or default_provider_settings_path()
         self._lock = RLock()
+        configured_backend = backend or (
+            "local" if path is not None else getenv("AGENT_PROVIDER_ACTIVATION_BACKEND", "local")
+        )
+        self._backend = configured_backend.strip().lower()
+        if self._backend not in {"local", "environment"}:
+            raise ProviderActivationError(
+                "AGENT_PROVIDER_ACTIVATION_BACKEND must be 'local' or 'environment'"
+            )
+        configured_disabled = (
+            disabled_providers
+            if disabled_providers is not None
+            else getenv("AGENT_DISABLED_PROVIDERS", "")
+        )
+        self._disabled_providers = self._parse_disabled_providers(configured_disabled)
+
+    @property
+    def writable(self) -> bool:
+        """Whether this runtime may persist enablement choices."""
+
+        return self._backend == "local"
 
     def is_enabled(self, source: str) -> bool:
         definition = get_data_source(source)
         if definition is None:
             raise ValueError("Unknown provider")
+        if self._backend == "environment":
+            return definition.enabled_by_default and definition.name not in self._disabled_providers
         with self._lock:
             overrides = self._read()
         return overrides.get(definition.name, definition.enabled_by_default)
@@ -48,6 +84,10 @@ class ProviderActivationStore:
             raise ValueError("Unknown provider")
         if not isinstance(enabled, bool):
             raise ValueError("Provider enabled state must be boolean")
+        if self._backend == "environment":
+            raise ProviderActivationError(
+                "Provider enablement is managed by deployment configuration and is read-only"
+            )
         with self._lock:
             overrides = self._read()
             overrides[definition.name] = enabled
@@ -84,3 +124,18 @@ class ProviderActivationStore:
             except OSError:
                 pass
             raise ProviderActivationError("Provider settings could not be saved") from error
+
+    @staticmethod
+    def _parse_disabled_providers(raw_value: str) -> frozenset[str]:
+        disabled: set[str] = set()
+        for raw_name in raw_value.split(","):
+            name = raw_name.strip().lower()
+            if not name:
+                continue
+            definition = get_data_source(name)
+            if definition is None:
+                raise ProviderActivationError(
+                    "AGENT_DISABLED_PROVIDERS contains an unknown provider"
+                )
+            disabled.add(definition.name)
+        return frozenset(disabled)

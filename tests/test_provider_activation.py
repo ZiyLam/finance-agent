@@ -44,6 +44,26 @@ class ProviderActivationStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unknown provider"):
             ProviderActivationStore(self.path).set_enabled("not-a-provider", False)
 
+    def test_environment_backend_is_declarative_and_read_only(self) -> None:
+        store = ProviderActivationStore(
+            backend="environment",
+            disabled_providers="eastmoney, qianfan",
+        )
+
+        self.assertFalse(store.writable)
+        self.assertFalse(store.is_enabled("eastmoney"))
+        self.assertFalse(store.is_enabled("qianfan"))
+        self.assertTrue(store.is_enabled("alltick"))
+        with self.assertRaisesRegex(ProviderActivationError, "deployment configuration"):
+            store.set_enabled("alltick", False)
+
+    def test_environment_backend_rejects_unknown_disabled_provider(self) -> None:
+        with self.assertRaisesRegex(ProviderActivationError, "unknown provider"):
+            ProviderActivationStore(
+                backend="environment",
+                disabled_providers="spelling-error",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

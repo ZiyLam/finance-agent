@@ -9,6 +9,13 @@ data:
   AGENT_ENV: "staging"
   AGENT_LOG_DIR: "/tmp/finance-agent/logs"
   AGENT_LOG_LEVEL: "INFO"
+  # Purpose: Linux containers read credentials only from the environment that
+  # Kubernetes Secret supplies; they never fall back to Windows DPAPI storage.
+  AGENT_SECRET_BACKEND: "environment"
+  # Purpose: provider enablement is declared by deployment configuration rather
+  # than written into a Pod filesystem that disappears during replacement.
+  AGENT_PROVIDER_ACTIVATION_BACKEND: "environment"
+  AGENT_DISABLED_PROVIDERS: ""
   AGENT_PROVIDER: "echo"
   AGENT_SERVE_WEB: "true"
   YFINANCE_CACHE_DIR: "/tmp/finance-agent/yfinance"

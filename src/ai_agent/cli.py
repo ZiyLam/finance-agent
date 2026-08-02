@@ -26,7 +26,7 @@ from .research_planning import (
 )
 from .research_report import SecurityResearchReportBuilder
 from .runtime import build_market_data_tool_registry
-from .secrets import SecretStoreError, TokenStore, resolve_token
+from .secrets import SecretStore, SecretStoreError, default_secret_store, resolve_token
 from .skills import compose_system_prompt, load_skills
 from .tools import (
     ToolRegistry,
@@ -64,7 +64,7 @@ def _print_report_help(output: Callable[[str], None]) -> None:
 def run_source_command(
     arguments: Sequence[str],
     *,
-    store: TokenStore | None = None,
+    store: SecretStore | None = None,
     secret_input: Callable[[str], str] = getpass,
     confirmation_input: Callable[[str], str] = input,
     output: Callable[[str], None] = print,
@@ -145,7 +145,7 @@ def run_source_command(
         _print_source_help(output)
         return 2
     source = definition.name
-    active_store = store or TokenStore()
+    active_store = store or default_secret_store()
 
     if command == "set-token":
         token = secret_input(f"{source} API token (input hidden): ")

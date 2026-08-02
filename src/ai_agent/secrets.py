@@ -9,14 +9,28 @@ from __future__ import annotations
 import base64
 import ctypes
 import json
+import os
 from ctypes import wintypes
 from os import getenv, replace
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Protocol
 
 
 class SecretStoreError(RuntimeError):
     """A safe error that never includes a secret value."""
+
+
+class SecretStore(Protocol):
+    """Minimal credential-store contract shared by local and deployed runtimes."""
+
+    backend_name: str
+    writable: bool
+
+    def get_token(self, source: str) -> str | None: ...
+
+    def set_token(self, source: str, token: str) -> None: ...
+
+    def delete_token(self, source: str) -> bool: ...
 
 
 class _DataBlob(ctypes.Structure):
@@ -100,6 +114,9 @@ def default_secret_store_path() -> Path:
 class TokenStore:
     """Persists named API tokens using pluggable encryption for testability."""
 
+    backend_name = "windows_dpapi"
+    writable = True
+
     def __init__(
         self,
         path: Path | None = None,
@@ -173,10 +190,63 @@ class TokenStore:
         return normalized
 
 
-def resolve_token(source: str, environment_variable: str, store: TokenStore | None = None) -> str | None:
+class EnvironmentSecretStore:
+    """Read-only marker store for environment or Kubernetes-managed credentials.
+
+    Environment values are resolved by :func:`resolve_token`.  This object
+    deliberately has no writable fallback, preventing a Linux container from
+    attempting to use the current Windows user's DPAPI files.
+    """
+
+    backend_name = "deployment_environment"
+    writable = False
+
+    def get_token(self, source: str) -> str | None:
+        TokenStore._validate_source(source)
+        return None
+
+    def set_token(self, source: str, token: str) -> None:
+        TokenStore._validate_source(source)
+        if not token.strip():
+            raise ValueError("Token cannot be blank")
+        raise SecretStoreError(
+            "Runtime credentials are managed by the deployment environment and are read-only."
+        )
+
+    def delete_token(self, source: str) -> bool:
+        TokenStore._validate_source(source)
+        raise SecretStoreError(
+            "Runtime credentials are managed by the deployment environment and are read-only."
+        )
+
+
+def default_secret_store() -> SecretStore:
+    """Select one explicit, platform-safe credential backend.
+
+    Windows development keeps the existing DPAPI behavior.  Linux containers
+    default to environment-only credentials.  An explicit incompatible backend
+    fails during startup instead of silently writing a Windows-looking path.
+    """
+
+    configured_backend = getenv("AGENT_SECRET_BACKEND", "").strip().lower()
+    backend = configured_backend or ("dpapi" if os.name == "nt" else "environment")
+    if backend in {"environment", "env", "kubernetes"}:
+        return EnvironmentSecretStore()
+    if backend == "dpapi":
+        if os.name != "nt":
+            raise SecretStoreError("The DPAPI secret backend is available only on Windows")
+        return TokenStore()
+    raise SecretStoreError("AGENT_SECRET_BACKEND must be 'dpapi' or 'environment'")
+
+
+def resolve_token(
+    source: str,
+    environment_variable: str,
+    store: SecretStore | None = None,
+) -> str | None:
     """Prefer an ephemeral environment value, otherwise retrieve the local token."""
 
     environment_token = getenv(environment_variable)
     if environment_token:
         return environment_token
-    return (store or TokenStore()).get_token(source)
+    return (store or default_secret_store()).get_token(source)
