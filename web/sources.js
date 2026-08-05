@@ -40,6 +40,11 @@ function sourceOriginText(source) {
   return "尚未配置令牌";
 }
 
+function credentialManagementText(source) {
+  if (source.credential_editable !== false) return "";
+  return "凭证由部署环境只读管理。请更新本机凭证文件并运行受控同步流程。";
+}
+
 function sourceUsageText(source) {
   if (source.configuration_group === CONFIGURATION_GROUPS.llm) {
     return source.token_required_by_adapter
@@ -151,6 +156,8 @@ function createSourceCard(source) {
   activation.setAttribute("role", "switch");
   activation.setAttribute("aria-checked", String(Boolean(source.enabled)));
   activation.setAttribute("aria-label", `${source.display_name}：${source.enabled ? "已启用，点击停用" : "未启用，点击启用"}`);
+  activation.disabled = source.enablement_editable === false;
+  if (activation.disabled) activation.title = "启停状态由部署配置管理";
   activation.addEventListener("click", () => setProviderEnabled(source, activation));
   headingActions.append(badge, activation);
   heading.append(title, headingActions);
@@ -210,16 +217,21 @@ function createSourceCard(source) {
   input.autocomplete = "new-password";
   input.placeholder = "输入后加密保存，不会回显";
   input.setAttribute("aria-label", `${source.display_name} 的新令牌`);
+  input.disabled = source.credential_editable === false;
   label.append(input);
   const actions = createElement("div", "source-token-actions");
   const save = createElement("button", "button button-primary", "保存令牌");
   save.type = "button";
+  save.disabled = source.credential_editable === false;
   save.addEventListener("click", () => saveToken(source, input, save));
   const remove = createElement("button", "button button-danger", "删除本地令牌");
   remove.type = "button";
+  remove.disabled = source.credential_editable === false;
   remove.addEventListener("click", () => deleteToken(source, remove));
   actions.append(save, remove);
   form.append(label, actions);
+  const managementText = credentialManagementText(source);
+  if (managementText) form.append(createElement("p", "source-managed-notice", managementText));
   card.append(form);
   return card;
 }

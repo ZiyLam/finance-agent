@@ -17,6 +17,9 @@ class AgentSettings:
     codex_timeout_seconds: float = 120.0
     web_codex_timeout_seconds: float = 35.0
     qianfan_timeout_seconds: float = 60.0
+    bailian_timeout_seconds: float = 60.0
+    bailian_workspace_id: str = ""
+    bailian_base_url: str = ""
     web_conversation_ttl_seconds: float = 1_800.0
     web_max_conversations: int = 50
 
@@ -34,6 +37,9 @@ class AgentSettings:
         qianfan_timeout_seconds = float(getenv("AGENT_QIANFAN_TIMEOUT_SECONDS", "60"))
         if qianfan_timeout_seconds <= 0:
             raise ValueError("AGENT_QIANFAN_TIMEOUT_SECONDS must be positive")
+        bailian_timeout_seconds = float(getenv("AGENT_BAILIAN_TIMEOUT_SECONDS", "60"))
+        if bailian_timeout_seconds <= 0:
+            raise ValueError("AGENT_BAILIAN_TIMEOUT_SECONDS must be positive")
         web_conversation_ttl_seconds = float(getenv("AGENT_WEB_CONVERSATION_TTL_SECONDS", "1800"))
         if web_conversation_ttl_seconds <= 0:
             raise ValueError("AGENT_WEB_CONVERSATION_TTL_SECONDS must be positive")
@@ -44,6 +50,8 @@ class AgentSettings:
         configured_model = getenv("AGENT_MODEL", "")
         if provider == "qianfan" and not configured_model.strip():
             configured_model = "ernie-4.5-turbo-32k"
+        if provider == "bailian" and not configured_model.strip():
+            configured_model = "qwen-plus"
 
         return cls(
             provider=provider,
@@ -53,6 +61,9 @@ class AgentSettings:
             codex_timeout_seconds=codex_timeout_seconds,
             web_codex_timeout_seconds=web_codex_timeout_seconds,
             qianfan_timeout_seconds=qianfan_timeout_seconds,
+            bailian_timeout_seconds=bailian_timeout_seconds,
+            bailian_workspace_id=getenv("BAILIAN_WORKSPACE_ID", "").strip(),
+            bailian_base_url=getenv("AGENT_BAILIAN_BASE_URL", "").strip(),
             web_conversation_ttl_seconds=web_conversation_ttl_seconds,
             web_max_conversations=web_max_conversations,
         )

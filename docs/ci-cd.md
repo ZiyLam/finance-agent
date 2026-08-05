@@ -69,6 +69,10 @@ Windows 个人机器可以直接使用 WSL2 内的 Docker、kubectl 和 kind。�
 `http://localhost:18080/web/` 访问；页面需要的随机访问令牌保存在被 Git 忽略的
 `.local/kind-web-access-token`。重新运行脚本会复用集群和本地令牌并发布新镜像。
 
+外部数据源、LLM和IMA凭证不由普通CD自动读取。更新固定本机凭证文件后，使用仓库根目录的
+`sync-local-secrets.cmd` 执行格式校验、Kind Secret同步、滚动加载和Windows侧验收；完整规则见
+[凭证生命周期与本地维护规范](credentials.md)。
+
 启动脚本会创建隐藏的 `wsl.exe sleep infinity` keepalive。否则，当最后一个 Windows WSL
 客户端退出时，WSL 可能回收虚拟机并停止 Docker/kind；PID 会写入被 Git 忽略的
 `.local/wsl-keepalive.pid`，停止脚本会清理它。

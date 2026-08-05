@@ -38,6 +38,21 @@ jobs:
           fi
           bash -n scripts/deploy_local_kind.sh
           bash -n scripts/install_local_runner.sh
+          bash -n scripts/sync_kind_secrets.sh
+
+      - name: Check PowerShell launcher syntax
+        shell: pwsh
+        run: |
+          $scripts = @(
+            "scripts/import_bailian_api_key.ps1",
+            "scripts/normalize_local_secret_file.ps1",
+            "scripts/start_local_staging.ps1",
+            "scripts/stop_local_staging.ps1",
+            "scripts/sync_local_secrets.ps1"
+          )
+          foreach ($script in $scripts) {
+            [void][scriptblock]::Create([IO.File]::ReadAllText($script))
+          }
 
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v6
@@ -69,9 +84,37 @@ jobs:
 
       - run: node --test tests/test_web_api_client.js
 
+  windows-launchers:
+    name: Windows launchers
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check PowerShell script syntax
+        shell: pwsh
+        run: |
+          $scripts = @(
+            "scripts/import_bailian_api_key.ps1",
+            "scripts/normalize_local_secret_file.ps1",
+            "scripts/start_local_staging.ps1",
+            "scripts/stop_local_staging.ps1",
+            "scripts/sync_local_secrets.ps1"
+          )
+          foreach ($script in $scripts) {
+            [void][scriptblock]::Create([IO.File]::ReadAllText($script))
+          }
+
+      - name: Check tracked credential command launcher
+        shell: pwsh
+        run: |
+          cmd.exe /c .\sync-local-secrets.cmd --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
   build:
     name: Build distribution
-    needs: test
+    needs: [test, windows-launchers]
     runs-on: ubuntu-latest
 
     steps:
@@ -107,7 +150,7 @@ jobs:
 
   container:
     name: Build container
-    needs: test
+    needs: [test, windows-launchers]
     runs-on: ubuntu-latest
 
     steps:

@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from os import getenv
 from queue import Empty, Queue
 from threading import BoundedSemaphore, RLock, Thread
 from time import monotonic
@@ -20,7 +21,7 @@ from ..data_sources import (
 from ..messages import ChatMessage, MessageRole
 from ..observability import log_event
 from ..provider_activation import ProviderActivationError, ProviderActivationStore
-from ..secrets import SecretStoreError, TokenStore, resolve_token
+from ..secrets import SecretStore, SecretStoreError, default_secret_store, resolve_token
 
 SourceProbe = Callable[[str | None], None]
 
@@ -57,7 +58,7 @@ class SourceConnectivityService:
 
     def __init__(
         self,
-        store: TokenStore | None = None,
+        store: SecretStore | None = None,
         *,
         activation: ProviderActivationStore | None = None,
         probes: Mapping[str, SourceProbe] | None = None,
@@ -70,7 +71,7 @@ class SourceConnectivityService:
             raise ValueError("source connectivity timeout_seconds must be positive")
         if max_parallel_checks < 1:
             raise ValueError("max_parallel_checks must be at least 1")
-        self._store = store or TokenStore()
+        self._store = store or default_secret_store()
         self._activation = activation or ProviderActivationStore()
         self._probes = dict(_default_probes() if probes is None else probes)
         self._timeout_seconds = timeout_seconds
@@ -373,6 +374,19 @@ def _default_probes() -> dict[str, SourceProbe]:
             (),
         )
 
+    def bailian(token: str | None) -> None:
+        from ..providers.bailian import BailianModelClient
+
+        BailianModelClient(
+            token or "",
+            workspace_id=getenv("BAILIAN_WORKSPACE_ID", "").strip(),
+            base_url=getenv("AGENT_BAILIAN_BASE_URL", "").strip() or None,
+            timeout_seconds=timeout_seconds,
+        ).complete(
+            (ChatMessage(MessageRole.USER, "请仅确认服务可用。"),),
+            (),
+        )
+
     def aktools(_token: str | None) -> None:
         from ..market_data.aktools import AkToolsClient
 
@@ -409,6 +423,7 @@ def _default_probes() -> dict[str, SourceProbe]:
         "eastmoney": eastmoney,
         "zhitu": zhitu,
         "qianfan": qianfan,
+        "bailian": bailian,
         "aktools": aktools,
         "baostock": baostock,
         "yfinance": yfinance,

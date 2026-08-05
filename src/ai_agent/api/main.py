@@ -14,6 +14,7 @@ from ..config import AgentSettings
 from ..langchain.agent import Agent
 from ..langchain.memory import ConversationMemory
 from ..provider_activation import ProviderActivationStore
+from ..providers.bailian import DEFAULT_BAILIAN_MODEL, BailianModelClient
 from ..providers.codex_cli import CodexCliModelClient
 from ..providers.echo import EchoModelClient
 from ..providers.qianfan import DEFAULT_QIANFAN_MODEL, QianfanModelClient
@@ -57,23 +58,34 @@ def optional_narrator() -> EvidenceBoundNarrator | None:
             ),
             provider_name="codex",
         )
-    if provider != "qianfan":
+    if provider not in {"qianfan", "bailian"}:
         return None
     try:
-        api_key = resolve_token("qianfan", "QIANFAN_API_KEY")
+        source_name, environment_variable = (
+            ("qianfan", "QIANFAN_API_KEY") if provider == "qianfan" else ("bailian", "BAILIAN_API_KEY")
+        )
+        api_key = resolve_token(source_name, environment_variable)
     except SecretStoreError:
         return None
     if not api_key:
         return None
-    return EvidenceBoundNarrator(
-        QianfanModelClient(
+    if provider == "qianfan":
+        model = QianfanModelClient(
             api_key,
             model=getenv("AGENT_QIANFAN_MODEL", DEFAULT_QIANFAN_MODEL),
             timeout_seconds=float(getenv("AGENT_QIANFAN_TIMEOUT_SECONDS", "60")),
             enabled=lambda: ProviderActivationStore().is_enabled("qianfan"),
-        ),
-        provider_name="qianfan",
-    )
+        )
+    else:
+        model = BailianModelClient(
+            api_key,
+            model=getenv("AGENT_BAILIAN_MODEL", DEFAULT_BAILIAN_MODEL),
+            workspace_id=getenv("BAILIAN_WORKSPACE_ID", "").strip(),
+            base_url=getenv("AGENT_BAILIAN_BASE_URL", "").strip() or None,
+            timeout_seconds=float(getenv("AGENT_BAILIAN_TIMEOUT_SECONDS", "60")),
+            enabled=lambda: ProviderActivationStore().is_enabled("bailian"),
+        )
+    return EvidenceBoundNarrator(model, provider_name=provider)
 
 
 def build_web_agent() -> Agent:
@@ -99,6 +111,21 @@ def build_web_agent() -> Agent:
             model=settings.model,
             timeout_seconds=settings.qianfan_timeout_seconds,
             enabled=lambda: ProviderActivationStore().is_enabled("qianfan"),
+        )
+    elif settings.provider == "bailian":
+        try:
+            api_key = resolve_token("bailian", "BAILIAN_API_KEY")
+        except SecretStoreError as error:
+            raise RuntimeError("The saved Bailian credential cannot be read.") from error
+        if not api_key:
+            raise RuntimeError("Bailian is selected but no API key is configured.")
+        model = BailianModelClient(
+            api_key,
+            model=settings.model,
+            workspace_id=settings.bailian_workspace_id,
+            base_url=settings.bailian_base_url or None,
+            timeout_seconds=settings.bailian_timeout_seconds,
+            enabled=lambda: ProviderActivationStore().is_enabled("bailian"),
         )
     else:
         raise RuntimeError("The configured Web model provider is not supported.")

@@ -15,12 +15,12 @@ from ai_agent.api.app import create_app, create_development_components
 from ai_agent.application.entity_resolution import KWEICHOW_MOUTAI, EntityResolution
 from ai_agent.application.input_parser import ResearchIntentParser
 from ai_agent.application.source_connectivity import SourceConnectivityService
-from ai_agent.application.source_credentials import SourceCredentialService
+from ai_agent.application.source_credentials import SourceCredentialError, SourceCredentialService
 from ai_agent.application.web_workspace import WebWorkspaceError, WebWorkspaceService
 from ai_agent.data_sources import DATA_SOURCE_CATALOG
 from ai_agent.messages import ToolCall
 from ai_agent.provider_activation import ProviderActivationStore
-from ai_agent.secrets import TokenStore
+from ai_agent.secrets import EnvironmentSecretStore, TokenStore
 from ai_agent.tools import FunctionTool, ToolRegistry
 
 
@@ -487,19 +487,40 @@ class WebWorkspaceTests(unittest.TestCase):
         alltick_status = next(item for item in response.json()["sources"] if item["name"] == "alltick")
         self.assertTrue(alltick_status["configured"])
         self.assertEqual(alltick_status["credential_origin"], "environment_variable")
+        self.assertTrue(alltick_status["credential_editable"])
+        self.assertTrue(alltick_status["enablement_editable"])
         self.assertNotIn("active_token", alltick_status)
         self.assertNotIn(environment_token, response.text)
 
-    def test_source_catalog_assigns_qianfan_to_the_llm_module(self) -> None:
+    def test_deployment_managed_credentials_are_reported_as_read_only(self) -> None:
+        credentials = SourceCredentialService(
+            EnvironmentSecretStore(),
+            activation=ProviderActivationStore(backend="environment"),
+        )
+        with patch.dict(os.environ, {"ALLTICK_API_TOKEN": "deployment-token"}, clear=False):
+            alltick_status = next(
+                source for source in credentials.list_sources() if source["name"] == "alltick"
+            )
+
+        self.assertTrue(alltick_status["configured"])
+        self.assertEqual(alltick_status["credential_backend"], "deployment_environment")
+        self.assertFalse(alltick_status["credential_editable"])
+        self.assertFalse(alltick_status["enablement_editable"])
+        with self.assertRaisesRegex(SourceCredentialError, "secure local store"):
+            credentials.set_token("alltick", "must-not-be-written")
+
+    def test_source_catalog_assigns_model_providers_to_the_llm_module(self) -> None:
         response = self.client.get("/v1/web/sources")
 
         self.assertEqual(response.status_code, 200)
         catalog = response.json()["sources"]
         qianfan = next(source for source in catalog if source["name"] == "qianfan")
+        bailian = next(source for source in catalog if source["name"] == "bailian")
         data_sources = [source for source in catalog if source["configuration_group"] == "data_source"]
 
         self.assertEqual(qianfan["configuration_group"], "llm")
-        self.assertEqual(len(data_sources), len(DATA_SOURCE_CATALOG) - 1)
+        self.assertEqual(bailian["configuration_group"], "llm")
+        self.assertEqual(len(data_sources), len(DATA_SOURCE_CATALOG) - 2)
 
     def test_provider_enablement_api_persists_and_is_returned_in_source_status(self) -> None:
         disabled = self.client.put("/v1/web/sources/eastmoney/enabled", json={"enabled": False})
@@ -537,7 +558,10 @@ class WebWorkspaceTests(unittest.TestCase):
         response = self.client.post("/v1/web/sources/connectivity?configuration_group=llm")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([source["name"] for source in response.json()["sources"]], ["qianfan"])
+        self.assertEqual(
+            [source["name"] for source in response.json()["sources"]],
+            ["qianfan", "bailian"],
+        )
 
     def test_source_connectivity_endpoint_returns_safe_remote_failure_state(self) -> None:
         response = self.client.post("/v1/web/sources/eastmoney/connectivity")
@@ -560,6 +584,8 @@ class WebWorkspaceTests(unittest.TestCase):
         self.assertIn("LLM 模块", page.text)
         self.assertIn("测试连通", script.text)
         self.assertIn("configuration_group", script.text)
+        self.assertIn("source.credential_editable", script.text)
+        self.assertIn("source.enablement_editable", script.text)
         self.assertIn('role", "switch"', script.text)
         self.assertIn("/enabled", script.text)
         self.assertIn("connectivity-remote_failure", styles.text)
@@ -582,12 +608,26 @@ class WebWorkspaceTests(unittest.TestCase):
         self.assertIn("export function renderProfessionalIndexComparison", renderer_script.text)
         self.assertIn("professional-comparison-grid", styles.text)
 
-    def test_source_credentials_are_rejected_from_remote_clients_even_with_web_token(self) -> None:
+    def test_source_status_is_available_remotely_with_a_valid_web_token(self) -> None:
         remote_client = TestClient(self.app, client=("203.0.113.10", 50_000))
         with patch.dict(os.environ, {"AGENT_WEB_ACCESS_TOKEN": "test-web-token"}, clear=False):
             response = remote_client.get("/v1/web/sources", headers={"X-Finance-Agent-Token": "test-web-token"})
 
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("sources", response.json())
+
+    def test_source_credential_mutation_remains_local_even_with_web_token(self) -> None:
+        remote_client = TestClient(self.app, client=("203.0.113.10", 50_000))
+        sensitive_token = "remote-token-must-not-be-accepted"
+        with patch.dict(os.environ, {"AGENT_WEB_ACCESS_TOKEN": "test-web-token"}, clear=False):
+            response = remote_client.put(
+                "/v1/web/sources/alltick/token",
+                headers={"X-Finance-Agent-Token": "test-web-token"},
+                json={"token": sensitive_token},
+            )
+
         self.assertEqual(response.status_code, 403)
+        self.assertNotIn(sensitive_token, response.text)
 
 
 if __name__ == "__main__":

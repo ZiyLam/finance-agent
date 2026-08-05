@@ -126,7 +126,7 @@ def create_web_router(
     @router.get("/v1/web/sources")
     def web_sources(
         response: Response,
-        _: None = Depends(require_local_credential_access),
+        _: None = Depends(require_web_access),
         credentials: SourceCredentialService = Depends(active_source_credentials),
     ) -> dict[str, object]:
         """List configuration state without returning credential values."""
@@ -160,7 +160,7 @@ def create_web_router(
     def check_all_web_source_connectivity(
         response: Response,
         configuration_group: str | None = None,
-        _: None = Depends(require_local_credential_access),
+        _: None = Depends(require_web_access),
         connectivity: SourceConnectivityService = Depends(active_source_connectivity),
     ) -> dict[str, object]:
         """Run bounded read-only smoke tests in catalog routing order."""
@@ -178,7 +178,7 @@ def create_web_router(
     def check_web_source_connectivity(
         source: str,
         response: Response,
-        _: None = Depends(require_local_credential_access),
+        _: None = Depends(require_web_access),
         connectivity: SourceConnectivityService = Depends(active_source_connectivity),
     ) -> dict[str, object]:
         """Run one explicit, minimal and read-only source smoke test."""
@@ -250,4 +250,3 @@ def create_web_router(
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(error)) from error
 
     return router
-

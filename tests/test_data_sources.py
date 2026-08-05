@@ -29,6 +29,7 @@ class DataSourceCatalogTests(unittest.TestCase):
                 "eodhd",
                 "eastmoney",
                 "qianfan",
+                "bailian",
                 "aktools",
                 "baostock",
                 "tickflow",
@@ -60,9 +61,10 @@ class DataSourceCatalogTests(unittest.TestCase):
         llms = configurations_in_group(SourceConfigurationGroup.LLM)
         market_data = configurations_in_group(SourceConfigurationGroup.DATA_SOURCE)
 
-        self.assertEqual([definition.name for definition in llms], ["qianfan"])
+        self.assertEqual([definition.name for definition in llms], ["qianfan", "bailian"])
         self.assertNotIn("qianfan", {definition.name for definition in market_data})
-        self.assertEqual(len(market_data), len(DATA_SOURCE_CATALOG) - 1)
+        self.assertNotIn("bailian", {definition.name for definition in market_data})
+        self.assertEqual(len(market_data), len(DATA_SOURCE_CATALOG) - 2)
 
 
 if __name__ == "__main__":

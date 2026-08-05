@@ -141,8 +141,8 @@ class SourceConnectivityTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             results = service.check_all("llm")
 
-        self.assertEqual([result["name"] for result in results], ["qianfan"])
-        self.assertEqual(results[0]["status"], "not_configured")
+        self.assertEqual([result["name"] for result in results], ["qianfan", "bailian"])
+        self.assertEqual([result["status"] for result in results], ["not_configured", "not_configured"])
 
     def test_disabled_provider_does_not_read_credential_or_call_probe(self) -> None:
         sensitive_token = "disabled-provider-token"

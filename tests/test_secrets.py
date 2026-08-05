@@ -6,7 +6,14 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from ai_agent.cli import run_source_command
-from ai_agent.secrets import TokenStore, default_secret_store_path, resolve_token
+from ai_agent.secrets import (
+    EnvironmentSecretStore,
+    SecretStoreError,
+    TokenStore,
+    default_secret_store,
+    default_secret_store_path,
+    resolve_token,
+)
 
 
 def reversible_protect(value: bytes) -> bytes:
@@ -45,6 +52,27 @@ class TokenStoreTests(unittest.TestCase):
                     default_secret_store_path(),
                     Path(directory) / "Codex" / "finance-agent" / "tokens.json",
                 )
+
+    def test_environment_backend_is_explicitly_read_only(self) -> None:
+        store = EnvironmentSecretStore()
+
+        self.assertFalse(store.writable)
+        self.assertIsNone(store.get_token("alltick"))
+        with self.assertRaisesRegex(SecretStoreError, "deployment environment"):
+            store.set_token("alltick", "not-persisted")
+        with self.assertRaisesRegex(SecretStoreError, "deployment environment"):
+            store.delete_token("alltick")
+
+    def test_explicit_environment_backend_avoids_dpapi(self) -> None:
+        with patch.dict("os.environ", {"AGENT_SECRET_BACKEND": "environment"}, clear=True):
+            store = default_secret_store()
+
+        self.assertIsInstance(store, EnvironmentSecretStore)
+
+    def test_unknown_backend_fails_without_echoing_configuration(self) -> None:
+        with patch.dict("os.environ", {"AGENT_SECRET_BACKEND": "unknown"}, clear=True):
+            with self.assertRaisesRegex(SecretStoreError, "must be 'dpapi' or 'environment'"):
+                default_secret_store()
 
     def test_source_command_never_prints_token(self) -> None:
         with TemporaryDirectory() as directory:
