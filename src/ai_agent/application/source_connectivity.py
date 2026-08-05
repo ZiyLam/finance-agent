@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from os import getenv
 from queue import Empty, Queue
 from threading import BoundedSemaphore, RLock, Thread
 from time import monotonic
@@ -373,6 +374,19 @@ def _default_probes() -> dict[str, SourceProbe]:
             (),
         )
 
+    def bailian(token: str | None) -> None:
+        from ..providers.bailian import BailianModelClient
+
+        BailianModelClient(
+            token or "",
+            workspace_id=getenv("BAILIAN_WORKSPACE_ID", "").strip(),
+            base_url=getenv("AGENT_BAILIAN_BASE_URL", "").strip() or None,
+            timeout_seconds=timeout_seconds,
+        ).complete(
+            (ChatMessage(MessageRole.USER, "请仅确认服务可用。"),),
+            (),
+        )
+
     def aktools(_token: str | None) -> None:
         from ..market_data.aktools import AkToolsClient
 
@@ -409,6 +423,7 @@ def _default_probes() -> dict[str, SourceProbe]:
         "eastmoney": eastmoney,
         "zhitu": zhitu,
         "qianfan": qianfan,
+        "bailian": bailian,
         "aktools": aktools,
         "baostock": baostock,
         "yfinance": yfinance,

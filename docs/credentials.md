@@ -17,6 +17,7 @@ G:\Program Files\finance-agent-api-token-backup.txt
 ALLTICK_API_TOKEN=replace-with-a-real-value
 QIANFAN_API_KEY=
 IMA_OPENAPI_CLIENTID=replace-with-a-real-value
+BAILIAN_API_KEY=replace-with-a-real-value
 ```
 
 格式规则：
@@ -43,12 +44,15 @@ IMA_OPENAPI_CLIENTID=replace-with-a-real-value
 | 行情 | `ZHITU_API_KEY` | 智兔数服 | 可选 |
 | 本地服务 | `AKTOOLS_API_TOKEN` | AkTools未来可选认证 | 可选，当前适配器不使用 |
 | LLM | `QIANFAN_API_KEY` | 千帆兼容 Chat Completions | **待完成（需用户）：选择真实 LLM 时填写** |
+| LLM | `BAILIAN_API_KEY` | 阿里云百炼 OpenAI 兼容 Chat Completions | 由本地 CSV 导入；工作空间 ID 属于非敏感 ConfigMap |
 | 知识库 | `IMA_OPENAPI_CLIENTID` | ima OpenAPI客户端标识 | 已由本地文件维护 |
 | 知识库 | `IMA_OPENAPI_APIKEY` | ima OpenAPI密钥 | 已由本地文件维护 |
 | 知识库 | `IMA_KNOWLEDGE_BASE_ID` | 指定 ima 目标知识库 | 可选；也可用非敏感名称配置 |
 | 小程序 | `WECHAT_APP_SECRET` | 微信服务端 AppSecret | **待完成（需用户）：恢复小程序发布时填写** |
 
 `AGENT_WEB_ACCESS_TOKEN` 和 `AGENT_SESSION_SECRET` 由部署脚本独立生成，不应放入人工维护文件。非敏感的供应商选择、模型名称、服务地址和启停状态进入 ConfigMap，而不是 Secret。
+
+百炼端点属于非敏感部署配置。默认由 `BAILIAN_WORKSPACE_ID` 推导官方推荐的业务空间专属域名；当供应商迁移域名对现有工作空间返回参数错误时，可在 ConfigMap 中设置完整 HTTPS `AGENT_BAILIAN_BASE_URL`。当前本地 Staging 使用阿里云文档仍明确支持的通用 DashScope 兼容端点；凭证本身仍只存在于 Secret 中。切换端点后必须重新构建、rollout，并执行最小只读连通测试。
 
 ## 本地同步流程
 
@@ -81,6 +85,7 @@ IMA_OPENAPI_CLIENTID=replace-with-a-real-value
 
 - **待完成（需用户）**：购置服务器后选择 Secret Manager、域名和生产审批策略。
 - **待完成（需用户）**：生产启用真实 LLM前选择供应商、配额和付费边界。
+- **待完成（需用户）**：百炼模型、地域、业务空间配额或计费策略发生变化时，在百炼控制台确认后再更新 ConfigMap。
 - **待完成（需用户）**：任何实际密钥的创建、撤销和供应商侧权限变更。
 
 知识库、日志、Git提交和CI产物只能记录键名、用途、状态和路径，不能记录实际值。

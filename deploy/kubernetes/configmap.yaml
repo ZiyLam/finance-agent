@@ -17,5 +17,15 @@ data:
   AGENT_PROVIDER_ACTIVATION_BACKEND: "environment"
   AGENT_DISABLED_PROVIDERS: ""
   AGENT_PROVIDER: "echo"
+  # Purpose: use the Beijing business-space endpoint documented by Bailian;
+  # this identifier is non-secret and comes from the local workspace export.
+  BAILIAN_WORKSPACE_ID: "6432087"
+  # Purpose: the workspace-scoped endpoint currently rejects this otherwise
+  # valid default-workspace key with invalid_parameter_error. Alibaba Cloud's
+  # documented legacy endpoint remains supported and passes the same read-only
+  # probe; keep this override declarative so migration requires no code change.
+  AGENT_BAILIAN_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+  AGENT_BAILIAN_MODEL: "qwen-plus"
+  AGENT_BAILIAN_TIMEOUT_SECONDS: "60"
   AGENT_SERVE_WEB: "true"
   YFINANCE_CACHE_DIR: "/tmp/finance-agent/yfinance"

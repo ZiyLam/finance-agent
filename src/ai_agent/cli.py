@@ -16,6 +16,7 @@ from .data_sources import data_source_names, get_data_source, ordered_data_sourc
 from .langchain.agent import Agent
 from .langchain.memory import ConversationMemory
 from .provider_activation import ProviderActivationStore
+from .providers.bailian import BailianModelClient
 from .providers.codex_cli import CodexCliError, CodexCliModelClient
 from .providers.echo import EchoModelClient
 from .providers.qianfan import QianfanError, QianfanModelClient
@@ -363,9 +364,30 @@ def main(argv: Sequence[str] | None = None) -> None:
             timeout_seconds=settings.qianfan_timeout_seconds,
             enabled=lambda: ProviderActivationStore().is_enabled("qianfan"),
         )
+    elif settings.provider == "bailian":
+        try:
+            bailian_api_key = resolve_token("bailian", "BAILIAN_API_KEY")
+        except SecretStoreError as error:
+            raise SystemExit(
+                "Could not read the saved Bailian API key. "
+                "Run 'finance-agent source delete-token bailian' then set it again."
+            ) from error
+        if not bailian_api_key:
+            raise SystemExit(
+                "Bailian API key is not configured. Run 'finance-agent source set-token bailian' "
+                "or set BAILIAN_API_KEY for this process."
+            )
+        model = BailianModelClient(
+            bailian_api_key,
+            model=settings.model,
+            workspace_id=settings.bailian_workspace_id,
+            base_url=settings.bailian_base_url or None,
+            timeout_seconds=settings.bailian_timeout_seconds,
+            enabled=lambda: ProviderActivationStore().is_enabled("bailian"),
+        )
     else:
         raise SystemExit(
-            f"Provider '{settings.provider}' is not configured. Use 'codex', 'qianfan', or 'echo'."
+            f"Provider '{settings.provider}' is not configured. Use 'codex', 'qianfan', 'bailian', or 'echo'."
         )
 
     project_root = Path(__file__).resolve().parents[2]

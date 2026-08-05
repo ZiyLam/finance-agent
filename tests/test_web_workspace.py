@@ -509,16 +509,18 @@ class WebWorkspaceTests(unittest.TestCase):
         with self.assertRaisesRegex(SourceCredentialError, "secure local store"):
             credentials.set_token("alltick", "must-not-be-written")
 
-    def test_source_catalog_assigns_qianfan_to_the_llm_module(self) -> None:
+    def test_source_catalog_assigns_model_providers_to_the_llm_module(self) -> None:
         response = self.client.get("/v1/web/sources")
 
         self.assertEqual(response.status_code, 200)
         catalog = response.json()["sources"]
         qianfan = next(source for source in catalog if source["name"] == "qianfan")
+        bailian = next(source for source in catalog if source["name"] == "bailian")
         data_sources = [source for source in catalog if source["configuration_group"] == "data_source"]
 
         self.assertEqual(qianfan["configuration_group"], "llm")
-        self.assertEqual(len(data_sources), len(DATA_SOURCE_CATALOG) - 1)
+        self.assertEqual(bailian["configuration_group"], "llm")
+        self.assertEqual(len(data_sources), len(DATA_SOURCE_CATALOG) - 2)
 
     def test_provider_enablement_api_persists_and_is_returned_in_source_status(self) -> None:
         disabled = self.client.put("/v1/web/sources/eastmoney/enabled", json={"enabled": False})
@@ -556,7 +558,10 @@ class WebWorkspaceTests(unittest.TestCase):
         response = self.client.post("/v1/web/sources/connectivity?configuration_group=llm")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([source["name"] for source in response.json()["sources"]], ["qianfan"])
+        self.assertEqual(
+            [source["name"] for source in response.json()["sources"]],
+            ["qianfan", "bailian"],
+        )
 
     def test_source_connectivity_endpoint_returns_safe_remote_failure_state(self) -> None:
         response = self.client.post("/v1/web/sources/eastmoney/connectivity")

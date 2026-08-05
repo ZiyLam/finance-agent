@@ -133,6 +133,35 @@ class AgentSettingsTests(unittest.TestCase):
             ("qianfan", "ernie-4.5-turbo-32k", 60),
         )
 
+    def test_bailian_uses_its_default_model_workspace_base_url_and_timeout(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "AGENT_PROVIDER": "bailian",
+                "BAILIAN_WORKSPACE_ID": "6432087",
+                "AGENT_BAILIAN_BASE_URL": "https://dashscope.example.test/v1/chat/completions",
+            },
+            clear=True,
+        ):
+            settings = AgentSettings.from_environment()
+
+        self.assertEqual(
+            (
+                settings.provider,
+                settings.model,
+                settings.bailian_workspace_id,
+                settings.bailian_base_url,
+                settings.bailian_timeout_seconds,
+            ),
+            (
+                "bailian",
+                "qwen-plus",
+                "6432087",
+                "https://dashscope.example.test/v1/chat/completions",
+                60,
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

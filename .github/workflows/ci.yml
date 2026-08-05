@@ -44,6 +44,7 @@ jobs:
         shell: pwsh
         run: |
           $scripts = @(
+            "scripts/import_bailian_api_key.ps1",
             "scripts/normalize_local_secret_file.ps1",
             "scripts/start_local_staging.ps1",
             "scripts/stop_local_staging.ps1",
@@ -95,6 +96,7 @@ jobs:
         shell: pwsh
         run: |
           $scripts = @(
+            "scripts/import_bailian_api_key.ps1",
             "scripts/normalize_local_secret_file.ps1",
             "scripts/start_local_staging.ps1",
             "scripts/stop_local_staging.ps1",

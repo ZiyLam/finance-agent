@@ -146,7 +146,7 @@ def _content(value: str, *, max_length: int) -> str:
 
 
 def _planning_provider(provider: str) -> str:
-    return provider if provider in {"codex", "qianfan"} else "codex"
+    return provider if provider in {"codex", "qianfan", "bailian"} else "codex"
 
 
 def _analysis_completed_at() -> str:

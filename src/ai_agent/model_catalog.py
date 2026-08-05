@@ -55,6 +55,20 @@ MODEL_CATALOG = (
         "Requires a saved qianfan credential and an account-authorized model.",
     ),
     ModelDefinition(
+        "bailian",
+        "阿里云百炼",
+        frozenset(
+            {
+                ModelTag.FINANCIAL_RESEARCH,
+                ModelTag.CHINESE,
+                ModelTag.STRUCTURED_RESPONSE,
+                ModelTag.AGENT_TOOL_PROTOCOL,
+                ModelTag.REMOTE_API,
+            }
+        ),
+        "Requires a saved Bailian credential, workspace endpoint, and an account-authorized model.",
+    ),
+    ModelDefinition(
         "echo",
         "回显测试模型",
         frozenset({ModelTag.OFFLINE_SMOKE_TEST}),

@@ -203,6 +203,16 @@ DATA_SOURCES_BY_NAME: dict[str, DataSourceDefinition] = {
         latency_class=DataSourceLatencyClass.UNKNOWN,
         configuration_group=SourceConfigurationGroup.LLM,
     ),
+    "bailian": DataSourceDefinition(
+        "bailian",
+        "阿里云百炼 LLM",
+        "BAILIAN_API_KEY",
+        True,
+        status_description="requires a Bailian API key and an account-authorized model",
+        routing_priority=110,
+        latency_class=DataSourceLatencyClass.UNKNOWN,
+        configuration_group=SourceConfigurationGroup.LLM,
+    ),
     "aktools": DataSourceDefinition(
         "aktools",
         "AkTools / AKShare",

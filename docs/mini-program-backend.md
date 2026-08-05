@@ -20,7 +20,7 @@
 
 研究任务始终先生成确定性的证据与报告。个人模式默认 `AGENT_API_NARRATOR_PROVIDER=codex`：它使用本机已登录 Codex CLI 当前选定的模型；只要 `AGENT_MODEL` 为空，就不会覆盖该本地默认选择。该方式适合个人受控使用，不应视为多用户生产模型网关。
 
-如需显式改用已经接入的千帆，将 `AGENT_API_NARRATOR_PROVIDER=qianfan` 并在服务端配置千帆 Token。两种模型都只能接收报告中的范围、观察、风险、限制和下一步动作，不能调用工具或读取原始外部数据。模型不可用、未配置或限流时，任务仍返回确定性报告，并标记 `narration_status`，不会编造替代结论。
+如需显式改用已经接入的千帆或百炼，将 `AGENT_API_NARRATOR_PROVIDER=qianfan` 或 `AGENT_API_NARRATOR_PROVIDER=bailian`，并在服务端配置对应 Token。两种模型都只能接收报告中的范围、观察、风险、限制和下一步动作，不能调用工具或读取原始外部数据。模型不可用、未配置或限流时，任务仍返回确定性报告，并标记 `narration_status`，不会编造替代结论。
 
 启动本地服务：
 
